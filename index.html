@@ -1,26 +1,1181 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>wafer-world-idle</title>
-    <meta name="description" content="Lovable Generated Project" />
-    <meta name="author" content="Lovable" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SiliconFab Empire - Idle Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    <meta property="og:title" content="wafer-world-idle" />
-    <meta property="og:description" content="Lovable Generated Project" />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+        body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #581c87 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@lovable_dev" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-  </head>
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
 
-  <body>
-    <div id="root"></div>
-    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
-    <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+        .game-layout {
+            display: grid;
+            grid-template-columns: 200px 1fr 200px;
+            gap: 1rem;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1rem;
+            height: fit-content;
+            position: sticky;
+            top: 1rem;
+        }
+
+        .ad-space {
+            min-height: 250px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+        }
+
+        .main-content {
+            padding: 1rem 0;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1rem 0;
+            margin-bottom: 1rem;
+            border-radius: 12px;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .game-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #60a5fa, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stats-display {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: rgba(34, 197, 94, 1);
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: rgba(34, 197, 94, 0.9);
+        }
+
+        .section {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            background: linear-gradient(45deg, #06b6d4, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .production-line {
+            background: linear-gradient(45deg, rgba(239, 68, 68, 0.3), rgba(249, 115, 22, 0.3));
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: grid;
+            grid-template-columns: auto 1fr auto auto auto;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .production-icon {
+            font-size: 2rem;
+        }
+
+        .production-info h3 {
+            font-size: 1.125rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .production-info p {
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .production-stats {
+            text-align: center;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            font-size: 0.875rem;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #3b82f6, #1d4ed8);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: linear-gradient(45deg, #2563eb, #1e40af);
+            transform: scale(1.05);
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #10b981, #059669);
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: linear-gradient(45deg, #059669, #047857);
+            transform: scale(1.05);
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .btn-warning:hover:not(:disabled) {
+            background: linear-gradient(45deg, #d97706, #b45309);
+            transform: scale(1.05);
+        }
+
+        .upgrade-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .upgrade-card {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .upgrade-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .action-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .action-card {
+            background: linear-gradient(45deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.2));
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .achievement-card {
+            background: rgba(245, 158, 11, 0.2);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .achievement-unlocked {
+            background: rgba(34, 197, 94, 0.3);
+            border: 1px solid rgba(34, 197, 94, 0.5);
+        }
+
+        .progress-bar {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            height: 8px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #10b981, #059669);
+            transition: width 0.3s ease;
+        }
+
+        .notification {
+            background: linear-gradient(45deg, rgba(168, 85, 247, 0.3), rgba(219, 39, 119, 0.3));
+            border: 1px solid rgba(168, 85, 247, 0.5);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .game-layout {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .sidebar {
+                position: static;
+                order: 2;
+            }
+
+            .main-content {
+                order: 1;
+            }
+
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .stats-display {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .production-line {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: 0.5rem;
+            }
+
+            .upgrade-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .action-panel {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .hide {
+            display: none !important;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: rgba(30, 41, 59, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .close-btn {
+            background: rgba(239, 68, 68, 0.8);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            float: right;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-layout">
+        <!-- Left Sidebar -->
+        <div class="sidebar">
+            <div class="ad-space">
+                <!-- Google AdSense Code Here -->
+                <div>Advertisement Space<br>300x250</div>
+            </div>
+            <div class="ad-space">
+                <!-- Google AdSense Code Here -->
+                <div>Advertisement Space<br>300x600</div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="container">
+                <!-- Header -->
+                <div class="header">
+                    <div class="header-content">
+                        <h1 class="game-title">🏭 SiliconFab Empire</h1>
+                        <div class="stats-display">
+                            <div class="stat-card">
+                                <div class="stat-label">Current Money</div>
+                                <div class="stat-value" id="current-money">$500</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Total Earned</div>
+                                <div class="stat-value" id="total-earned">$0</div>
+                            </div>
+                            <div class="stat-card" id="prestige-display" style="display: none;">
+                                <div class="stat-label">Prestige Level</div>
+                                <div class="stat-value" id="prestige-level">0</div>
+                            </div>
+                            <div class="stat-card" id="tokens-display" style="display: none;">
+                                <div class="stat-label">Prestige Tokens</div>
+                                <div class="stat-value" id="prestige-tokens">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications -->
+                <div id="notifications"></div>
+
+                <!-- Action Panel -->
+                <div class="section">
+                    <h2 class="section-title">⚡ Action Center</h2>
+                    <div class="action-panel">
+                        <div class="action-card">
+                            <h3>🚀 Production Boost</h3>
+                            <p>Pay 10% of current money for 30 seconds of 3x production boost</p>
+                            <button class="btn btn-warning" id="boost-btn">Activate Boost</button>
+                            <div id="boost-cooldown" style="display: none;">Cooldown: <span id="boost-timer">0</span>s</div>
+                        </div>
+                        <div class="action-card">
+                            <h3>💥 Mega Click</h3>
+                            <p>Click all production lines at once for massive instant income!</p>
+                            <button class="btn btn-warning" id="mega-click-btn">🚀 MEGA CLICK 🚀</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Production Lines -->
+                <div class="section">
+                    <h2 class="section-title">🏭 Production Lines</h2>
+                    <div id="production-lines"></div>
+                </div>
+
+                <!-- Upgrades -->
+                <div class="section">
+                    <h2 class="section-title">⬆️ Upgrades</h2>
+                    <div class="upgrade-grid" id="upgrades-grid"></div>
+                    <div id="upgrades-complete" style="display: none; text-align: center; padding: 2rem;">
+                        <h3>🎉 Congratulations!</h3>
+                        <p>You've purchased all available upgrades! Keep playing to unlock prestige system.</p>
+                    </div>
+                </div>
+
+                <!-- Prestige System -->
+                <div class="section" id="prestige-section">
+                    <h2 class="section-title">👑 Prestige System</h2>
+                    <div id="prestige-content">
+                        <p style="text-align: center; color: rgba(255, 255, 255, 0.7);">
+                            Earn $10,000,000 to unlock the prestige system and gain permanent bonuses!
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Bottom Section -->
+                <div class="grid-2">
+                    <!-- Stats Panel -->
+                    <div class="section">
+                        <h2 class="section-title">📊 Statistics</h2>
+                        <div id="stats-content">
+                            <div style="margin-bottom: 1rem;">
+                                <strong>💰 Financial Stats</strong>
+                                <div>Money: $<span id="stat-money">500</span></div>
+                                <div>Total Earned: $<span id="stat-earned">0</span></div>
+                                <div>Total Spent: $<span id="stat-spent">0</span></div>
+                            </div>
+                            <div style="margin-bottom: 1rem;">
+                                <strong>🏭 Production Stats</strong>
+                                <div>Production Lines Owned: <span id="stat-lines">0</span></div>
+                                <div>Total Clicks: <span id="stat-clicks">0</span></div>
+                                <div>Managers Hired: <span id="stat-managers">0</span></div>
+                            </div>
+                            <div>
+                                <strong>⬆️ Progress Stats</strong>
+                                <div>Upgrades Purchased: <span id="stat-upgrades">0</span></div>
+                                <div>Achievements Unlocked: <span id="stat-achievements">0</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Achievements Panel -->
+                    <div class="section">
+                        <h2 class="section-title">🏆 Achievements</h2>
+                        <div id="achievements-content"></div>
+                    </div>
+                </div>
+
+                <!-- Bottom Ad Space -->
+                <div class="ad-space" style="height: 100px; margin: 2rem 0;">
+                    <!-- Google AdSense Code Here -->
+                    <div>Advertisement Space - 728x90 Leaderboard</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="sidebar">
+            <div class="ad-space">
+                <!-- Google AdSense Code Here -->
+                <div>Advertisement Space<br>300x250</div>
+            </div>
+            <div class="ad-space">
+                <!-- Google AdSense Code Here -->
+                <div>Advertisement Space<br>300x600</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tutorial Modal -->
+    <div id="tutorial-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeTutorial()">×</button>
+            <h2>🎮 Welcome to SiliconFab Empire!</h2>
+            <p>Build your silicon empire by purchasing production lines, hiring managers, and buying upgrades!</p>
+            <ul style="text-align: left; margin: 1rem 0;">
+                <li>💰 Click production lines to earn money manually</li>
+                <li>🏭 Buy production lines to automate income</li>
+                <li>👔 Hire managers to automate production lines</li>
+                <li>⬆️ Purchase upgrades to boost your empire</li>
+                <li>🏆 Unlock achievements for bonus rewards</li>
+                <li>👑 Prestige at $10M for permanent bonuses</li>
+            </ul>
+            <button class="btn btn-primary" onclick="closeTutorial()">Start Playing!</button>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        let gameState = {
+            money: 500,
+            totalEarned: 0,
+            totalSpent: 0,
+            totalClicks: 0,
+            prestigeLevel: 0,
+            prestigeTokens: 0,
+            boostActive: false,
+            boostEndTime: 0,
+            productionLines: [
+                { id: 'line1', name: 'Silicon Smelters', description: 'Basic silicon processing units', baseProduction: 5, baseCost: 500, cost: 500, production: 5, owned: 0, managerHired: false, managerCost: 1000, icon: '🔥' },
+                { id: 'line2', name: 'Wafer Fabricators', description: 'Advanced wafer manufacturing', baseProduction: 25, baseCost: 2500, cost: 2500, production: 25, owned: 0, managerHired: false, managerCost: 5000, icon: '💿' },
+                { id: 'line3', name: 'Chip Assemblers', description: 'High-tech chip assembly lines', baseProduction: 120, baseCost: 10000, cost: 10000, production: 120, owned: 0, managerHired: false, managerCost: 20000, icon: '🔬' },
+                { id: 'line4', name: 'Quantum Processors', description: 'Cutting-edge quantum computing', baseProduction: 700, baseCost: 50000, cost: 50000, production: 700, owned: 0, managerHired: false, managerCost: 100000, icon: '⚛️' },
+                { id: 'line5', name: 'AI Supercomputers', description: 'Revolutionary AI processing units', baseProduction: 3500, baseCost: 250000, cost: 250000, production: 3500, owned: 0, managerHired: false, managerCost: 500000, icon: '🤖' },
+                { id: 'line6', name: 'Neural Networks', description: 'Next-gen neural processing', baseProduction: 15000, baseCost: 1000000, cost: 1000000, production: 15000, owned: 0, managerHired: false, managerCost: 2000000, icon: '🧠' }
+            ],
+            upgrades: [
+                { id: 'upgrade1', name: 'Efficient Smelting', description: 'Silicon Smelters produce 20% more silicon.', cost: 1000, effect: 0.2, owned: 0, maxLevel: 5, affects: 'line1', purchased: false },
+                { id: 'upgrade2', name: 'Advanced Fabrication', description: 'Wafer Fabricators produce 30% more wafers.', cost: 5000, effect: 0.3, owned: 0, maxLevel: 5, affects: 'line2', purchased: false },
+                { id: 'upgrade3', name: 'Optimized Assembly', description: 'Chip Assemblers produce 40% more chips.', cost: 20000, effect: 0.4, owned: 0, maxLevel: 5, affects: 'line3', purchased: false },
+                { id: 'upgrade4', name: 'Quantum Optimization', description: 'Quantum Processors produce 50% more quantum processors.', cost: 100000, effect: 0.5, owned: 0, maxLevel: 5, affects: 'line4', purchased: false },
+                { id: 'upgrade5', name: 'AI Enhancement', description: 'AI Supercomputers produce 60% more AI power.', cost: 500000, effect: 0.6, owned: 0, maxLevel: 5, affects: 'line5', purchased: false },
+                { id: 'upgrade6', name: 'Global Marketing', description: 'Increase all production by 10%', cost: 750000, effect: 0.1, owned: 0, maxLevel: 5, affects: 'all', purchased: false },
+                { id: 'upgrade7', name: 'Click Power', description: 'Manual clicks produce 10x more', cost: 1500000, effect: 10, owned: 0, maxLevel: 5, affects: 'click', purchased: false },
+                { id: 'upgrade8', name: 'Auto Clicker', description: 'Automatically clicks every 2 seconds', cost: 5000000, effect: 1, owned: 0, maxLevel: 1, affects: 'auto', purchased: false }
+            ],
+            achievements: [
+                { id: 'ach1', name: 'First Silicon', description: 'Purchase your first production line.', reward: 1000, target: 1, type: 'production_lines', progress: 0, unlocked: false, claimed: false },
+                { id: 'ach2', name: 'Money Maker', description: 'Earn $2,500.', reward: 5000, target: 2500, type: 'total_earned', progress: 0, unlocked: false, claimed: false },
+                { id: 'ach3', name: 'Chip Tycoon', description: 'Earn $25,000.', reward: 25000, target: 25000, type: 'total_earned', progress: 0, unlocked: false, claimed: false },
+                { id: 'ach4', name: 'Silicon Empire', description: 'Earn $250,000.', reward: 100000, target: 250000, type: 'total_earned', progress: 0, unlocked: false, claimed: false },
+                { id: 'ach5', name: 'Click Master', description: 'Click production 100 times.', reward: 50000, target: 100, type: 'clicks', progress: 0, unlocked: false, claimed: false },
+                { id: 'ach6', name: 'Manager Mogul', description: 'Hire 3 managers.', reward: 75000, target: 3, type: 'managers', progress: 0, unlocked: false, claimed: false },
+                { id: 'ach7', name: 'Upgrade Master', description: 'Purchase 10 upgrades.', reward: 500000, target: 10, type: 'upgrades', progress: 0, unlocked: false, claimed: false },
+                { id: 'ach8', name: 'Prestige Ready', description: 'Earn $10,000,000 to unlock prestige.', reward: 1000000, target: 10000000, type: 'money', progress: 0, unlocked: false, claimed: false }
+            ],
+            autoClickerActive: false,
+            boostCooldown: 0
+        };
+
+        // Audio Context for Sound Effects
+        let audioContext;
+        
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            return audioContext;
+        }
+
+        function playSound(frequency, duration, type = 'sine', volume = 0.1) {
+            try {
+                const ctx = initAudio();
+                if (ctx.state === 'suspended') {
+                    ctx.resume();
+                }
+
+                const oscillator = ctx.createOscillator();
+                const gainNode = ctx.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(ctx.destination);
+
+                oscillator.frequency.setValueAtTime(frequency, ctx.currentTime);
+                oscillator.type = type;
+
+                gainNode.gain.setValueAtTime(0, ctx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(volume, ctx.currentTime + 0.01);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+
+                oscillator.start(ctx.currentTime);
+                oscillator.stop(ctx.currentTime + duration);
+            } catch (error) {
+                console.warn('Audio playback failed:', error);
+            }
+        }
+
+        function playClickSound() { playSound(800, 0.1, 'square', 0.05); }
+        function playPurchaseSound() { 
+            playSound(523, 0.2, 'sine', 0.1);
+            setTimeout(() => playSound(659, 0.2, 'sine', 0.1), 100);
+        }
+        function playAchievementSound() {
+            playSound(440, 0.2, 'sine', 0.1);
+            setTimeout(() => playSound(554, 0.2, 'sine', 0.1), 100);
+            setTimeout(() => playSound(659, 0.3, 'sine', 0.1), 200);
+        }
+
+        // Utility Functions
+        function formatNumber(num) {
+            if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';
+            if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+            if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+            if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+            return Math.floor(num).toLocaleString();
+        }
+
+        function canAfford(cost) {
+            return gameState.money >= cost;
+        }
+
+        // Game Logic Functions
+        function buyProductionLine(lineId) {
+            const line = gameState.productionLines.find(l => l.id === lineId);
+            if (!line || !canAfford(line.cost)) return;
+
+            playPurchaseSound();
+            gameState.money -= line.cost;
+            gameState.totalSpent += line.cost;
+            line.owned++;
+            line.cost = Math.floor(line.cost * 1.15);
+            
+            updateDisplay();
+            updateAchievements();
+        }
+
+        function hireManager(lineId) {
+            const line = gameState.productionLines.find(l => l.id === lineId);
+            if (!line || !canAfford(line.managerCost) || line.managerHired) return;
+
+            playPurchaseSound();
+            gameState.money -= line.managerCost;
+            gameState.totalSpent += line.managerCost;
+            line.managerHired = true;
+            
+            updateDisplay();
+            updateAchievements();
+        }
+
+        function clickProduction(lineId) {
+            const line = gameState.productionLines.find(l => l.id === lineId);
+            if (!line || line.owned === 0) return;
+
+            playClickSound();
+            
+            const clickUpgrade = gameState.upgrades.find(u => u.affects === 'click' && u.owned > 0);
+            const clickMultiplier = clickUpgrade ? Math.pow(1 + clickUpgrade.effect, clickUpgrade.owned) : 1;
+            
+            const production = line.baseProduction * clickMultiplier;
+            gameState.money += production;
+            gameState.totalEarned += production;
+            gameState.totalClicks++;
+            
+            updateDisplay();
+            updateAchievements();
+        }
+
+        function buyUpgrade(upgradeId) {
+            const upgrade = gameState.upgrades.find(u => u.id === upgradeId);
+            if (!upgrade || !canAfford(upgrade.cost) || upgrade.owned >= upgrade.maxLevel) return;
+
+            playPurchaseSound();
+            gameState.money -= upgrade.cost;
+            gameState.totalSpent += upgrade.cost;
+            upgrade.owned++;
+            upgrade.cost = Math.floor(upgrade.cost * 1.5);
+            
+            if (upgrade.owned >= upgrade.maxLevel) {
+                upgrade.purchased = true;
+            }
+            
+            if (upgrade.affects === 'auto' && upgrade.owned > 0) {
+                gameState.autoClickerActive = true;
+            }
+            
+            updateDisplay();
+            updateAchievements();
+        }
+
+        function activateBoost() {
+            if (gameState.boostCooldown > 0 || gameState.boostActive) return;
+            
+            const boostCost = Math.floor(gameState.money * 0.1);
+            if (!canAfford(boostCost)) return;
+
+            playPurchaseSound();
+            gameState.money -= boostCost;
+            gameState.boostActive = true;
+            gameState.boostEndTime = Date.now() + 30000;
+            gameState.boostCooldown = 60;
+            
+            setTimeout(() => {
+                gameState.boostActive = false;
+                gameState.boostEndTime = 0;
+            }, 30000);
+            
+            updateDisplay();
+        }
+
+        function megaClick() {
+            playClickSound();
+            playPurchaseSound();
+            
+            gameState.productionLines.forEach(line => {
+                if (line.owned > 0) {
+                    clickProduction(line.id);
+                }
+            });
+        }
+
+        function prestige() {
+            if (gameState.totalEarned < 10000000) return;
+            
+            const newTokens = Math.floor(gameState.totalEarned / 10000000);
+            gameState.prestigeTokens += newTokens;
+            gameState.prestigeLevel++;
+            
+            // Reset game state but keep prestige
+            const prestigeData = {
+                prestigeLevel: gameState.prestigeLevel,
+                prestigeTokens: gameState.prestigeTokens
+            };
+            
+            gameState = {
+                money: 500,
+                totalEarned: 0,
+                totalSpent: 0,
+                totalClicks: 0,
+                ...prestigeData,
+                boostActive: false,
+                boostEndTime: 0,
+                productionLines: [
+                    { id: 'line1', name: 'Silicon Smelters', description: 'Basic silicon processing units', baseProduction: 5, baseCost: 500, cost: 500, production: 5, owned: 0, managerHired: false, managerCost: 1000, icon: '🔥' },
+                    { id: 'line2', name: 'Wafer Fabricators', description: 'Advanced wafer manufacturing', baseProduction: 25, baseCost: 2500, cost: 2500, production: 25, owned: 0, managerHired: false, managerCost: 5000, icon: '💿' },
+                    { id: 'line3', name: 'Chip Assemblers', description: 'High-tech chip assembly lines', baseProduction: 120, baseCost: 10000, cost: 10000, production: 120, owned: 0, managerHired: false, managerCost: 20000, icon: '🔬' },
+                    { id: 'line4', name: 'Quantum Processors', description: 'Cutting-edge quantum computing', baseProduction: 700, baseCost: 50000, cost: 50000, production: 700, owned: 0, managerHired: false, managerCost: 100000, icon: '⚛️' },
+                    { id: 'line5', name: 'AI Supercomputers', description: 'Revolutionary AI processing units', baseProduction: 3500, baseCost: 250000, cost: 250000, production: 3500, owned: 0, managerHired: false, managerCost: 500000, icon: '🤖' },
+                    { id: 'line6', name: 'Neural Networks', description: 'Next-gen neural processing', baseProduction: 15000, baseCost: 1000000, cost: 1000000, production: 15000, owned: 0, managerHired: false, managerCost: 2000000, icon: '🧠' }
+                ],
+                upgrades: [
+                    { id: 'upgrade1', name: 'Efficient Smelting', description: 'Silicon Smelters produce 20% more silicon.', cost: 1000, effect: 0.2, owned: 0, maxLevel: 5, affects: 'line1', purchased: false },
+                    { id: 'upgrade2', name: 'Advanced Fabrication', description: 'Wafer Fabricators produce 30% more wafers.', cost: 5000, effect: 0.3, owned: 0, maxLevel: 5, affects: 'line2', purchased: false },
+                    { id: 'upgrade3', name: 'Optimized Assembly', description: 'Chip Assemblers produce 40% more chips.', cost: 20000, effect: 0.4, owned: 0, maxLevel: 5, affects: 'line3', purchased: false },
+                    { id: 'upgrade4', name: 'Quantum Optimization', description: 'Quantum Processors produce 50% more quantum processors.', cost: 100000, effect: 0.5, owned: 0, maxLevel: 5, affects: 'line4', purchased: false },
+                    { id: 'upgrade5', name: 'AI Enhancement', description: 'AI Supercomputers produce 60% more AI power.', cost: 500000, effect: 0.6, owned: 0, maxLevel: 5, affects: 'line5', purchased: false },
+                    { id: 'upgrade6', name: 'Global Marketing', description: 'Increase all production by 10%', cost: 750000, effect: 0.1, owned: 0, maxLevel: 5, affects: 'all', purchased: false },
+                    { id: 'upgrade7', name: 'Click Power', description: 'Manual clicks produce 10x more', cost: 1500000, effect: 10, owned: 0, maxLevel: 5, affects: 'click', purchased: false },
+                    { id: 'upgrade8', name: 'Auto Clicker', description: 'Automatically clicks every 2 seconds', cost: 5000000, effect: 1, owned: 0, maxLevel: 1, affects: 'auto', purchased: false }
+                ],
+                achievements: gameState.achievements.map(a => ({ ...a, progress: 0, unlocked: false, claimed: false })),
+                autoClickerActive: false,
+                boostCooldown: 0
+            };
+            
+            updateDisplay();
+        }
+
+        function claimAchievement(achId) {
+            const achievement = gameState.achievements.find(a => a.id === achId);
+            if (!achievement || achievement.claimed || !achievement.unlocked) return;
+
+            playAchievementSound();
+            gameState.money += achievement.reward;
+            achievement.claimed = true;
+            
+            updateDisplay();
+        }
+
+        // Achievement System
+        function updateAchievements() {
+            gameState.achievements.forEach(achievement => {
+                let progress = 0;
+
+                switch (achievement.type) {
+                    case 'money':
+                        progress = gameState.money;
+                        break;
+                    case 'total_earned':
+                        progress = gameState.totalEarned;
+                        break;
+                    case 'production_lines':
+                        progress = gameState.productionLines.reduce((total, line) => total + line.owned, 0);
+                        break;
+                    case 'upgrades':
+                        progress = gameState.upgrades.reduce((total, upgrade) => total + upgrade.owned, 0);
+                        break;
+                    case 'clicks':
+                        progress = gameState.totalClicks;
+                        break;
+                    case 'managers':
+                        progress = gameState.productionLines.filter(line => line.managerHired).length;
+                        break;
+                }
+
+                achievement.progress = progress;
+                if (progress >= achievement.target && !achievement.unlocked) {
+                    achievement.unlocked = true;
+                }
+            });
+        }
+
+        // Production Loop
+        function productionLoop() {
+            gameState.productionLines.forEach(line => {
+                if (line.owned > 0 && line.managerHired) {
+                    const globalUpgrade = gameState.upgrades.find(u => u.affects === 'all' && u.owned > 0);
+                    const lineUpgrade = gameState.upgrades.find(u => u.affects === line.id && u.owned > 0);
+                    
+                    let multiplier = 1;
+                    if (globalUpgrade) multiplier *= Math.pow(1 + globalUpgrade.effect, globalUpgrade.owned);
+                    if (lineUpgrade) multiplier *= Math.pow(1 + lineUpgrade.effect, lineUpgrade.owned);
+                    if (gameState.boostActive) multiplier *= 3;
+                    if (gameState.prestigeLevel > 0) multiplier *= Math.pow(1.1, gameState.prestigeLevel);
+                    
+                    const income = line.owned * line.baseProduction * multiplier;
+                    gameState.money += income;
+                    gameState.totalEarned += income;
+                }
+            });
+            
+            updateDisplay();
+            updateAchievements();
+        }
+
+        // Auto Clicker
+        function autoClickerLoop() {
+            if (gameState.autoClickerActive) {
+                const profitableLines = gameState.productionLines
+                    .filter(line => line.owned > 0)
+                    .sort((a, b) => (b.baseProduction) - (a.baseProduction));
+                
+                if (profitableLines.length > 0) {
+                    clickProduction(profitableLines[0].id);
+                }
+            }
+        }
+
+        // Cooldown Timer
+        function cooldownTimer() {
+            if (gameState.boostCooldown > 0) {
+                gameState.boostCooldown--;
+                document.getElementById('boost-timer').textContent = gameState.boostCooldown;
+                if (gameState.boostCooldown === 0) {
+                    document.getElementById('boost-cooldown').style.display = 'none';
+                    document.getElementById('boost-btn').style.display = 'block';
+                }
+            }
+        }
+
+        // Display Functions
+        function updateDisplay() {
+            // Update header stats
+            document.getElementById('current-money').textContent = `$${formatNumber(gameState.money)}`;
+            document.getElementById('total-earned').textContent = `$${formatNumber(gameState.totalEarned)}`;
+            
+            if (gameState.prestigeLevel > 0) {
+                document.getElementById('prestige-display').style.display = 'block';
+                document.getElementById('prestige-level').textContent = gameState.prestigeLevel;
+            }
+            
+            if (gameState.prestigeTokens > 0) {
+                document.getElementById('tokens-display').style.display = 'block';
+                document.getElementById('prestige-tokens').textContent = gameState.prestigeTokens;
+            }
+            
+            // Update notifications
+            updateNotifications();
+            
+            // Update production lines
+            updateProductionLines();
+            
+            // Update upgrades
+            updateUpgrades();
+            
+            // Update prestige section
+            updatePrestigeSection();
+            
+            // Update stats
+            updateStats();
+            
+            // Update achievements
+            updateAchievementsDisplay();
+            
+            // Update action buttons
+            updateActionButtons();
+        }
+
+        function updateNotifications() {
+            const notificationsDiv = document.getElementById('notifications');
+            notificationsDiv.innerHTML = '';
+            
+            // Prestige notification
+            if (gameState.totalEarned >= 10000000) {
+                const prestigeTokens = Math.floor(gameState.totalEarned / 10000000);
+                const notification = document.createElement('div');
+                notification.className = 'notification';
+                notification.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h3>👑 Ready to Prestige!</h3>
+                            <p>Gain ${prestigeTokens} prestige tokens and unlock permanent upgrades</p>
+                        </div>
+                        <button class="btn btn-warning" onclick="prestige()">Prestige</button>
+                    </div>
+                `;
+                notificationsDiv.appendChild(notification);
+            }
+            
+            // Available upgrades notification
+            const availableUpgrades = gameState.upgrades.filter(upgrade => 
+                !upgrade.purchased && gameState.money >= upgrade.cost
+            );
+            
+            if (availableUpgrades.length > 0) {
+                const notification = document.createElement('div');
+                notification.className = 'notification';
+                notification.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h3>⚡ Upgrades Available!</h3>
+                            <p>${availableUpgrades.length} upgrade${availableUpgrades.length > 1 ? 's' : ''} ready to purchase</p>
+                        </div>
+                        <span style="background: rgba(251, 191, 36, 0.3); padding: 0.5rem 1rem; border-radius: 20px; font-weight: bold;">
+                            ${availableUpgrades.length}
+                        </span>
+                    </div>
+                `;
+                notificationsDiv.appendChild(notification);
+            }
+        }
+
+        function updateProductionLines() {
+            const container = document.getElementById('production-lines');
+            container.innerHTML = '';
+            
+            gameState.productionLines.forEach(line => {
+                const div = document.createElement('div');
+                div.className = 'production-line';
+                div.innerHTML = `
+                    <div class="production-icon">${line.icon}</div>
+                    <div class="production-info">
+                        <h3>${line.name}</h3>
+                        <p>${line.description}</p>
+                        <small>Owned: ${line.owned} | Production: $${formatNumber(line.baseProduction)}/sec each</small>
+                    </div>
+                    <div class="production-stats">
+                        <div>Cost: $${formatNumber(line.cost)}</div>
+                        ${line.owned > 0 ? `<div>Income/sec: $${formatNumber(line.owned * line.baseProduction)}</div>` : ''}
+                    </div>
+                    <button class="btn btn-primary" onclick="buyProductionLine('${line.id}')" ${!canAfford(line.cost) ? 'disabled' : ''}>
+                        Buy ${line.name}
+                    </button>
+                    <div>
+                        ${line.owned > 0 && !line.managerHired ? 
+                            `<button class="btn btn-success" onclick="hireManager('${line.id}')" ${!canAfford(line.managerCost) ? 'disabled' : ''}>
+                                Hire Manager ($${formatNumber(line.managerCost)})
+                            </button>` : 
+                            line.managerHired ? 
+                                '<span style="color: #10b981; font-weight: bold;">✓ Manager Hired</span>' : 
+                                ''
+                        }
+                        ${line.owned > 0 ? `<button class="btn btn-warning" onclick="clickProduction('${line.id}')" style="margin-top: 0.5rem;">Click for $${formatNumber(line.baseProduction)}</button>` : ''}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function updateUpgrades() {
+            const container = document.getElementById('upgrades-grid');
+            const completeDiv = document.getElementById('upgrades-complete');
+            
+            const availableUpgrades = gameState.upgrades.filter(u => !u.purchased);
+            
+            if (availableUpgrades.length === 0) {
+                container.style.display = 'none';
+                completeDiv.style.display = 'block';
+                return;
+            }
+            
+            container.style.display = 'grid';
+            completeDiv.style.display = 'none';
+            container.innerHTML = '';
+            
+            availableUpgrades.forEach(upgrade => {
+                const div = document.createElement('div');
+                div.className = 'upgrade-card';
+                div.innerHTML = `
+                    <div class="upgrade-header">
+                        <h3>${upgrade.name}</h3>
+                        <span>${upgrade.owned}/${upgrade.maxLevel}</span>
+                    </div>
+                    <p>${upgrade.description}</p>
+                    <div style="margin-top: 1rem;">
+                        <div>Cost: $${formatNumber(upgrade.cost)}</div>
+                        <button class="btn btn-primary" onclick="buyUpgrade('${upgrade.id}')" ${!canAfford(upgrade.cost) || upgrade.owned >= upgrade.maxLevel ? 'disabled' : ''} style="width: 100%; margin-top: 0.5rem;">
+                            ${upgrade.owned >= upgrade.maxLevel ? 'Max Level' : 'Purchase Upgrade'}
+                        </button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function updatePrestigeSection() {
+            const content = document.getElementById('prestige-content');
+            
+            if (gameState.totalEarned >= 10000000) {
+                const tokens = Math.floor(gameState.totalEarned / 10000000);
+                content.innerHTML = `
+                    <div style="text-align: center;">
+                        <h3>👑 Prestige Available!</h3>
+                        <p>Reset your progress to gain <strong>${tokens} prestige tokens</strong></p>
+                        <p>Prestige tokens provide permanent bonuses that persist after reset</p>
+                        <button class="btn btn-warning" onclick="prestige()" style="margin-top: 1rem; font-size: 1.2rem; padding: 1rem 2rem;">
+                            Prestige for ${tokens} Tokens
+                        </button>
+                    </div>
+                `;
+            } else {
+                const needed = formatNumber(10000000 - gameState.totalEarned);
+                content.innerHTML = `
+                    <p style="text-align: center; color: rgba(255, 255, 255, 0.7);">
+                        Earn $${needed} more to unlock the prestige system and gain permanent bonuses!
+                    </p>
+                `;
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('stat-money').textContent = formatNumber(gameState.money);
+            document.getElementById('stat-earned').textContent = formatNumber(gameState.totalEarned);
+            document.getElementById('stat-spent').textContent = formatNumber(gameState.totalSpent);
+            document.getElementById('stat-lines').textContent = gameState.productionLines.reduce((total, line) => total + line.owned, 0);
+            document.getElementById('stat-clicks').textContent = gameState.totalClicks;
+            document.getElementById('stat-managers').textContent = gameState.productionLines.filter(line => line.managerHired).length;
+            document.getElementById('stat-upgrades').textContent = gameState.upgrades.reduce((total, upgrade) => total + upgrade.owned, 0);
+            document.getElementById('stat-achievements').textContent = gameState.achievements.filter(a => a.unlocked).length;
+        }
+
+        function updateAchievementsDisplay() {
+            const container = document.getElementById('achievements-content');
+            container.innerHTML = '';
+            
+            gameState.achievements.forEach(achievement => {
+                const div = document.createElement('div');
+                div.className = `achievement-card ${achievement.unlocked ? 'achievement-unlocked' : ''}`;
+                
+                div.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <h3>${achievement.name}</h3>
+                        <div style="display: flex; align-items: center;">
+                            ${achievement.unlocked ? '<span style="margin-right: 0.5rem;">✓</span>' : ''}
+                            <span style="background: rgba(245, 158, 11, 0.3); padding: 0.25rem 0.5rem; border-radius: 20px; font-size: 0.75rem;">
+                                $${formatNumber(achievement.reward)}
+                            </span>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.875rem; margin-bottom: 0.75rem;">${achievement.description}</p>
+                    <div style="margin-bottom: 0.5rem; font-size: 0.875rem;">
+                        Progress: ${formatNumber(achievement.progress)}/${formatNumber(achievement.target)} (${Math.min(100, Math.round((achievement.progress / achievement.target) * 100))}%)
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${Math.min(100, (achievement.progress / achievement.target) * 100)}%;"></div>
+                    </div>
+                    ${achievement.unlocked && !achievement.claimed ? `
+                        <button class="btn btn-success" onclick="claimAchievement('${achievement.id}')" style="width: 100%; margin-top: 0.75rem;">
+                            Claim Reward ($${formatNumber(achievement.reward)})
+                        </button>
+                    ` : achievement.claimed ? `
+                        <div style="text-align: center; margin-top: 0.75rem; color: #10b981;">✓ Reward Claimed</div>
+                    ` : ''}
+                `;
+                
+                container.appendChild(div);
+            });
+        }
+
+        function updateActionButtons() {
+            // Boost button
+            const boostBtn = document.getElementById('boost-btn');
+            const boostCooldown = document.getElementById('boost-cooldown');
+            const boostTimer = document.getElementById('boost-timer');
+            
+            if (gameState.boostActive) {
+                boostBtn.textContent = 'Boost Active';
+                boostBtn.disabled = true;
+            } else if (gameState.boostCooldown > 0) {
+                boostBtn.style.display = 'none';
+                boostCooldown.style.display = 'block';
+                boostTimer.textContent = gameState.boostCooldown;
+            } else {
+                boostBtn.style.display = 'block';
+                boostCooldown.style.display = 'none';
+                const boostCost = Math.floor(gameState.money * 0.1);
+                boostBtn.textContent = `Activate Boost ($${formatNumber(boostCost)})`;
+                boostBtn.disabled = !canAfford(boostCost);
+            }
+            
+            // Mega click button
+            const megaClickBtn = document.getElementById('mega-click-btn');
+            const hasProduction = gameState.productionLines.some(line => line.owned > 0);
+            megaClickBtn.disabled = !hasProduction;
+        }
+
+        function closeTutorial() {
+            document.getElementById('tutorial-modal').style.display = 'none';
+        }
+
+        // Save/Load System
+        function saveGame() {
+            localStorage.setItem('siliconfab-empire-save', JSON.stringify(gameState));
+        }
+
+        function loadGame() {
+            const savedGame = localStorage.getItem('siliconfab-empire-save');
+            if (savedGame) {
+                try {
+                    gameState = JSON.parse(savedGame);
+                    updateDisplay();
+                } catch (e) {
+                    console.error('Failed to load save:', e);
+                }
+            }
+        }
+
+        // Initialize game
+        window.onload = function() {
+            loadGame();
+            updateDisplay();
+            updateAchievements();
+            
+            // Auto-save every 30 seconds
+            setInterval(saveGame, 30000);
+            
+            // Production tick every second
+            setInterval(productionLoop, 1000);
+            
+            // Auto clicker every 2 seconds
+            setInterval(autoClickerLoop, 2000);
+            
+            // Cooldown timer every second
+            setInterval(cooldownTimer, 1000);
+            
+            // Event listeners
+            document.getElementById('boost-btn').addEventListener('click', activateBoost);
+            document.getElementById('mega-click-btn').addEventListener('click', megaClick);
+        };
+    </script>
+</body>
 </html>
