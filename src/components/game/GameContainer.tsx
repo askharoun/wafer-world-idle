@@ -6,6 +6,7 @@ import ProductionLines from './ProductionLines';
 import UpgradePanel from './UpgradePanel';
 import StatsPanel from './StatsPanel';
 import AchievementPanel from './AchievementPanel';
+import PrestigePanel from './PrestigePanel';
 import TutorialModal from './TutorialModal';
 import EventModal from './EventModal';
 
@@ -26,8 +27,8 @@ const GameContainer = () => {
           <GameHeader />
           
           <div className="container mx-auto px-4 py-6">
-            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-              <div className="xl:col-span-2">
+            <div className="grid grid-cols-1 xl:grid-cols-6 gap-6">
+              <div className="xl:col-span-3">
                 <ProductionLines />
               </div>
               
@@ -35,9 +36,12 @@ const GameContainer = () => {
                 <UpgradePanel />
               </div>
               
-              <div className="xl:col-span-1 space-y-6">
-                <StatsPanel />
-                <AchievementPanel />
+              <div className="xl:col-span-2 space-y-6">
+                <PrestigePanel />
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-1 gap-6">
+                  <StatsPanel />
+                  <AchievementPanel />
+                </div>
               </div>
             </div>
           </div>

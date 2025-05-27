@@ -1,6 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, TrendingUp, TrendingDown, Zap } from 'lucide-react';
+import { X, TrendingUp, TrendingDown, Zap, DollarSign, Cpu } from 'lucide-react';
+
+const iconMap = {
+  TrendingUp,
+  TrendingDown,
+  Zap,
+  DollarSign,
+  Cpu
+};
 
 const events = [
   {
@@ -10,7 +18,7 @@ const events = [
     effect: 'Production x2',
     duration: 60000,
     multiplier: 2,
-    icon: TrendingUp,
+    icon: 'TrendingUp',
     color: 'from-green-500 to-emerald-600'
   },
   {
@@ -20,7 +28,7 @@ const events = [
     effect: 'Production x3',
     duration: 45000,
     multiplier: 3,
-    icon: Zap,
+    icon: 'Zap',
     color: 'from-yellow-500 to-orange-600'
   },
   {
@@ -30,8 +38,28 @@ const events = [
     effect: 'Production x0.5',
     duration: 30000,
     multiplier: 0.5,
-    icon: TrendingDown,
+    icon: 'TrendingDown',
     color: 'from-red-500 to-pink-600'
+  },
+  {
+    id: 'crypto-surge',
+    title: 'Cryptocurrency Surge!',
+    description: 'Mining demand increases chip prices. Income multiplied by 4 for 40 seconds!',
+    effect: 'Income x4',
+    duration: 40000,
+    multiplier: 4,
+    icon: 'DollarSign',
+    color: 'from-purple-500 to-violet-600'
+  },
+  {
+    id: 'tech-breakthrough',
+    title: 'Quantum Computing Breakthrough!',
+    description: 'New quantum tech increases all efficiency by 500% for 90 seconds!',
+    effect: 'Production x5',
+    duration: 90000,
+    multiplier: 5,
+    icon: 'Cpu',
+    color: 'from-blue-500 to-cyan-600'
   }
 ];
 
@@ -41,7 +69,7 @@ const EventModal = () => {
 
   useEffect(() => {
     const eventInterval = setInterval(() => {
-      if (!currentEvent && Math.random() < 0.1) { // 10% chance every 30 seconds
+      if (!currentEvent && Math.random() < 0.12) { // 12% chance every 30 seconds
         const randomEvent = events[Math.floor(Math.random() * events.length)];
         setCurrentEvent(randomEvent);
         setTimeRemaining(randomEvent.duration);
@@ -74,7 +102,7 @@ const EventModal = () => {
 
   if (!currentEvent) return null;
 
-  const IconComponent = currentEvent.icon;
+  const IconComponent = iconMap[currentEvent.icon as keyof typeof iconMap];
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
