@@ -1,72 +1,51 @@
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-
-interface ProductionLine {
-  id: string;
-  name: string;
-  description: string;
-  baseProduction: number;
-  baseCost: number;
-  owned: number;
-  managerHired: boolean;
-  managerCost: number;
-  level: number;
-  icon: string;
-  color: string;
-}
-
+// Define the types for upgrades, production lines, market conditions, and achievements
 interface Upgrade {
   id: string;
   name: string;
   description: string;
   cost: number;
-  multiplier: number;
-  purchased: boolean;
-  category: string;
-  unlockCondition: {
-    type: 'money' | 'owned' | 'achievement' | 'prestige';
+  effect: number;
+  owned: number;
+  maxLevel: number;
+  affects: string;
+  unlockCondition?: {
+    type: string;
     value: number;
-    target?: string;
   };
+}
+
+interface ProductionLine {
+  id: string;
+  name: string;
+  cost: number;
+  production: number;
+  owned: number;
+}
+
+interface MarketCondition {
+  id: string;
+  name: string;
+  efficiency: number;
 }
 
 interface Achievement {
   id: string;
   name: string;
   description: string;
-  unlocked: boolean;
-  progress: number;
-  target: number;
   reward: number;
-  type: 'money' | 'owned' | 'manager' | 'upgrade' | 'prestige';
-  targetId?: string;
-  unlockCondition?: {
-    type: 'achievement';
-    value: string;
-  };
+  target: number;
+  type: string;
+  progress: number;
+  unlocked: boolean;
+  claimed: boolean;
 }
 
-interface PrestigeUpgrade {
-  id: string;
-  name: string;
-  description: string;
-  cost: number;
-  purchased: boolean;
-  effect: {
-    type: 'production' | 'cost' | 'manager' | 'income';
-    multiplier: number;
-  };
-}
-
-interface MarketEvent {
-  id: string;
-  title: string;
-  description: string;
-  effect: string;
-  duration: number;
-  multiplier: number;
-  icon: any;
-  color: string;
+interface GameSettings {
+  soundEnabled: boolean;
+  notificationsEnabled: boolean;
+  autoSave: boolean;
 }
 
 interface GameState {
@@ -75,929 +54,481 @@ interface GameState {
   totalSpent: number;
   productionLines: ProductionLine[];
   upgrades: Upgrade[];
+  marketConditions: MarketCondition[];
   achievements: Achievement[];
+  currentEvent: {
+    id: number;
+    title: string;
+    description: string;
+    effect: string;
+    value: number;
+    duration: number;
+  } | null;
   prestigeLevel: number;
-  prestigeTokens: number;
-  prestigeUpgrades: PrestigeUpgrade[];
-  currentEvent: MarketEvent | null;
-  marketMultiplier: number;
+  prestigePoints: number;
+  prestigeUpgrades: Upgrade[];
+  settings: GameSettings;
   lastSave: number;
-  gameStartTime: number;
-  settings: {
-    soundEnabled: boolean;
-    notificationsEnabled: boolean;
-    autoSave: boolean;
-  };
 }
 
 interface GameContextType {
   gameState: GameState;
-  updateMoney: (amount: number) => void;
-  buyProductionLine: (id: string) => void;
-  hireManager: (id: string) => void;
-  buyUpgrade: (id: string) => void;
-  buyPrestigeUpgrade: (id: string) => void;
+  purchaseUpgrade: (upgradeId: string) => void;
+  purchaseProductionLine: (lineId: string) => void;
+  purchasePrestigeUpgrade: (upgradeId: string) => void;
+  claimAchievement: (achievementId: string) => void;
   prestige: () => void;
-  clickProduction: (id: string) => void;
+  updateSettings: (settings: Partial<GameSettings>) => void;
   saveGame: () => void;
   loadGame: () => void;
   resetGame: () => void;
-  updateSettings: (settings: Partial<GameState['settings']>) => void;
+  exportSave: () => string;
+  importSave: (saveDataString: string) => boolean;
+  getVisibleUpgrades: () => Upgrade[];
+  getVisibleAchievements: () => Achievement[];
 }
 
-const GameContext = createContext<GameContextType | null>(null);
+const GameContext = createContext<GameContextType | undefined>(undefined);
 
-const initialProductionLines: ProductionLine[] = [
-  {
-    id: 'silicon-extraction',
-    name: 'Silicon Extraction',
-    description: 'Extract raw silicon from quartz sand',
-    baseProduction: 1,
-    baseCost: 10,
-    owned: 0,
-    managerHired: false,
-    managerCost: 1000,
-    level: 1,
-    icon: '⛏️',
-    color: 'from-amber-500 to-orange-600'
+const initialState: GameState = {
+  money: 500,
+  totalEarned: 0,
+  totalSpent: 0,
+  productionLines: [
+    { id: 'line1', name: 'Silicon Smelters', cost: 500, production: 5, owned: 0 },
+    { id: 'line2', name: 'Wafer Fabricators', cost: 2500, production: 25, owned: 0 },
+    { id: 'line3', name: 'Chip Assemblers', cost: 10000, production: 120, owned: 0 },
+    { id: 'line4', name: 'Quantum Processors', cost: 50000, production: 700, owned: 0 },
+    { id: 'line5', name: 'AI Supercomputers', cost: 250000, production: 3500, owned: 0 },
+  ],
+  upgrades: [
+    { id: 'upgrade1', name: 'Efficient Smelting', description: 'Silicon Smelters produce 20% more silicon.', cost: 1000, effect: 0.2, owned: 0, maxLevel: 5, affects: 'line1' },
+    { id: 'upgrade2', name: 'Advanced Fabrication', description: 'Wafer Fabricators produce 30% more wafers.', cost: 5000, effect: 0.3, owned: 0, maxLevel: 5, affects: 'line2' },
+    { id: 'upgrade3', name: 'Optimized Assembly', description: 'Chip Assemblers produce 40% more chips.', cost: 20000, effect: 0.4, owned: 0, maxLevel: 5, affects: 'line3' },
+    { id: 'upgrade4', name: 'Quantum Optimization', description: 'Quantum Processors produce 50% more quantum processors.', cost: 100000, effect: 0.5, owned: 0, maxLevel: 5, affects: 'line4' },
+    { id: 'upgrade5', name: 'AI Enhancement', description: 'AI Supercomputers produce 60% more AI power.', cost: 500000, effect: 0.6, owned: 0, maxLevel: 5, affects: 'line5' },
+    { id: 'upgrade6', name: 'Global Marketing', description: 'Increase all production by 10%', cost: 750000, effect: 0.1, owned: 0, maxLevel: 5, affects: 'all', unlockCondition: { type: 'spent', value: 500000 } },
+    { id: 'upgrade7', name: 'Government Subsidies', description: 'Reduce all production costs by 15%', cost: 1250000, effect: -0.15, owned: 0, maxLevel: 5, affects: 'cost', unlockCondition: { type: 'achievements', value: 5 } },
+    { id: 'upgrade8', name: 'Prestige Production', description: 'Increase all production by 5% per prestige level', cost: 2500000, effect: 0.05, owned: 0, maxLevel: 1, affects: 'prestige', unlockCondition: { type: 'prestige', value: 1 } },
+  ],
+  marketConditions: [
+    { id: 'market1', name: 'Silicon Market', efficiency: 1.0 },
+    { id: 'market2', name: 'Wafer Market', efficiency: 1.0 },
+    { id: 'market3', name: 'Chip Market', efficiency: 1.0 },
+    { id: 'market4', name: 'Quantum Market', efficiency: 1.0 },
+    { id: 'market5', name: 'AI Market', efficiency: 1.0 },
+  ],
+  achievements: [
+    { id: 'ach1', name: 'First Silicon', description: 'Produce your first silicon.', reward: 1000, target: 1, type: 'production_lines', progress: 0, unlocked: false, claimed: false },
+    { id: 'ach2', name: 'Wafer Novice', description: 'Produce 500 wafers.', reward: 5000, target: 500, type: 'total_earned', progress: 0, unlocked: false, claimed: false },
+    { id: 'ach3', name: 'Chip Tycoon', description: 'Produce 2500 chips.', reward: 25000, target: 2500, type: 'total_earned', progress: 0, unlocked: false, claimed: false },
+    { id: 'ach4', name: 'Quantum Baron', description: 'Produce 10000 quantum processors.', reward: 100000, target: 10000, type: 'total_earned', progress: 0, unlocked: false, claimed: false },
+    { id: 'ach5', name: 'AI Empire', description: 'Produce 50000 AI supercomputers.', reward: 500000, target: 50000, type: 'total_earned', progress: 0, unlocked: false, claimed: false },
+    { id: 'ach6', name: 'Money Maker', description: 'Earn $1,000,000.', reward: 1000000, target: 1000000, type: 'money', progress: 0, unlocked: false, claimed: false },
+    { id: 'ach7', name: 'Upgrade Master', description: 'Purchase 10 upgrades.', reward: 500000, target: 10, type: 'upgrades', progress: 0, unlocked: false, claimed: false },
+    { id: 'ach8', name: 'Prestige Player', description: 'Prestige once.', reward: 1000000, target: 1, type: 'prestige', progress: 0, unlocked: false, claimed: false },
+  ],
+  currentEvent: null,
+  prestigeLevel: 0,
+  prestigePoints: 0,
+  prestigeUpgrades: [
+    { id: 'prestige1', name: 'Enhanced Automation', description: 'Increase base production by 10% per level', cost: 1, effect: 0.1, owned: 0, maxLevel: 5, affects: 'all' },
+    { id: 'prestige2', name: 'Skilled Workforce', description: 'Reduce production costs by 5% per level', cost: 1, effect: -0.05, owned: 0, maxLevel: 5, affects: 'cost' },
+  ],
+  settings: {
+    soundEnabled: true,
+    notificationsEnabled: true,
+    autoSave: true,
   },
-  {
-    id: 'crystal-growth',
-    name: 'Crystal Growth',
-    description: 'Grow silicon crystals in specialized furnaces',
-    baseProduction: 5,
-    baseCost: 100,
-    owned: 0,
-    managerHired: false,
-    managerCost: 5000,
-    level: 1,
-    icon: '💎',
-    color: 'from-blue-500 to-cyan-600'
-  },
-  {
-    id: 'wafer-slicing',
-    name: 'Wafer Slicing',
-    description: 'Slice crystals into thin wafers',
-    baseProduction: 25,
-    baseCost: 1000,
-    owned: 0,
-    managerHired: false,
-    managerCost: 25000,
-    level: 1,
-    icon: '🔪',
-    color: 'from-green-500 to-emerald-600'
-  },
-  {
-    id: 'lithography',
-    name: 'Lithography',
-    description: 'Pattern circuits on wafers using advanced lithography',
-    baseProduction: 125,
-    baseCost: 10000,
-    owned: 0,
-    managerHired: false,
-    managerCost: 125000,
-    level: 1,
-    icon: '🔬',
-    color: 'from-purple-500 to-violet-600'
-  },
-  {
-    id: 'chip-assembly',
-    name: 'Chip Assembly',
-    description: 'Package and test finished semiconductors',
-    baseProduction: 625,
-    baseCost: 100000,
-    owned: 0,
-    managerHired: false,
-    managerCost: 625000,
-    level: 1,
-    icon: '🔧',
-    color: 'from-red-500 to-pink-600'
-  },
-  {
-    id: 'cpu-production',
-    name: 'CPU Production',
-    description: 'Manufacture high-performance processors',
-    baseProduction: 3125,
-    baseCost: 1000000,
-    owned: 0,
-    managerHired: false,
-    managerCost: 3125000,
-    level: 1,
-    icon: '🖥️',
-    color: 'from-indigo-500 to-blue-600'
-  }
-];
+  lastSave: Date.now(),
+};
 
-const allUpgrades: Upgrade[] = [
-  {
-    id: 'silicon-efficiency-1',
-    name: 'Silicon Efficiency I',
-    description: 'Double silicon extraction speed',
-    cost: 1000,
-    multiplier: 2,
-    purchased: false,
-    category: 'silicon-extraction',
-    unlockCondition: { type: 'owned', value: 5, target: 'silicon-extraction' }
-  },
-  {
-    id: 'silicon-efficiency-2',
-    name: 'Silicon Efficiency II',
-    description: 'Triple silicon extraction speed',
-    cost: 25000,
-    multiplier: 3,
-    purchased: false,
-    category: 'silicon-extraction',
-    unlockCondition: { type: 'owned', value: 25, target: 'silicon-extraction' }
-  },
-  {
-    id: 'silicon-efficiency-3',
-    name: 'Advanced Silicon Mining',
-    description: 'Quintuple silicon extraction with AI optimization',
-    cost: 1000000,
-    multiplier: 5,
-    purchased: false,
-    category: 'silicon-extraction',
-    unlockCondition: { type: 'money', value: 500000 }
-  },
-  {
-    id: 'crystal-purity-1',
-    name: 'Crystal Purity I',
-    description: 'Triple crystal growth rate',
-    cost: 10000,
-    multiplier: 3,
-    purchased: false,
-    category: 'crystal-growth',
-    unlockCondition: { type: 'owned', value: 10, target: 'crystal-growth' }
-  },
-  {
-    id: 'crystal-purity-2',
-    name: 'Ultra Pure Crystals',
-    description: 'Multiply crystal growth by 5x',
-    cost: 500000,
-    multiplier: 5,
-    purchased: false,
-    category: 'crystal-growth',
-    unlockCondition: { type: 'owned', value: 50, target: 'crystal-growth' }
-  },
-  {
-    id: 'crystal-purity-3',
-    name: 'Quantum Crystal Synthesis',
-    description: 'Revolutionary 10x crystal growth enhancement',
-    cost: 50000000,
-    multiplier: 10,
-    purchased: false,
-    category: 'crystal-growth',
-    unlockCondition: { type: 'money', value: 10000000 }
-  },
-  {
-    id: 'precision-cutting-1',
-    name: 'Precision Cutting I',
-    description: 'Quadruple wafer slicing speed',
-    cost: 100000,
-    multiplier: 4,
-    purchased: false,
-    category: 'wafer-slicing',
-    unlockCondition: { type: 'owned', value: 15, target: 'wafer-slicing' }
-  },
-  {
-    id: 'precision-cutting-2',
-    name: 'Laser Precision Cutting',
-    description: 'Advanced laser cutting - 7x multiplier',
-    cost: 5000000,
-    multiplier: 7,
-    purchased: false,
-    category: 'wafer-slicing',
-    unlockCondition: { type: 'achievement', value: 'crystal-master' }
-  },
-  {
-    id: 'nano-lithography',
-    name: 'Nano Lithography',
-    description: 'Revolutionary 7nm process - 10x multiplier',
-    cost: 50000000,
-    multiplier: 10,
-    purchased: false,
-    category: 'lithography',
-    unlockCondition: { type: 'money', value: 10000000 }
-  },
-  {
-    id: 'euv-lithography',
-    name: 'EUV Lithography',
-    description: 'Extreme ultraviolet tech - 20x multiplier',
-    cost: 1000000000,
-    multiplier: 20,
-    purchased: false,
-    category: 'lithography',
-    unlockCondition: { type: 'achievement', value: 'automation-master' }
-  },
-  {
-    id: 'quantum-assembly',
-    name: 'Quantum Assembly',
-    description: 'Quantum-enhanced assembly - 15x multiplier',
-    cost: 1000000000,
-    multiplier: 15,
-    purchased: false,
-    category: 'chip-assembly',
-    unlockCondition: { type: 'prestige', value: 1 }
-  },
-  {
-    id: 'ai-optimization',
-    name: 'AI Process Optimization',
-    description: 'AI optimizes all production lines - 2x global multiplier',
-    cost: 5000000000,
-    multiplier: 2,
-    purchased: false,
-    category: 'global',
-    unlockCondition: { type: 'achievement', value: 'automation-master' }
-  },
-  {
-    id: 'molecular-assembly',
-    name: 'Molecular Assembly',
-    description: 'Atomic-level precision - 50x global multiplier',
-    cost: 100000000000,
-    multiplier: 50,
-    purchased: false,
-    category: 'global',
-    unlockCondition: { type: 'prestige', value: 3 }
+const gameReducer = (state: GameState, action: any): GameState => {
+  switch (action.type) {
+    case 'UPDATE_MONEY':
+      return { ...state, money: Math.max(0, action.payload) };
+    
+    case 'PURCHASE_UPGRADE':
+      const upgrade = state.upgrades.find(u => u.id === action.payload);
+      if (!upgrade || state.money < upgrade.cost || upgrade.owned >= upgrade.maxLevel) {
+        return state;
+      }
+      
+      const newUpgrades = state.upgrades.map(u =>
+        u.id === action.payload
+          ? { ...u, owned: u.owned + 1, cost: Math.floor(u.cost * 1.5) }
+          : u
+      );
+      
+      return {
+        ...state,
+        money: state.money - upgrade.cost,
+        totalSpent: state.totalSpent + upgrade.cost,
+        upgrades: newUpgrades
+      };
+    
+    case 'PURCHASE_PRODUCTION_LINE':
+      const line = state.productionLines.find(l => l.id === action.payload);
+      if (!line || state.money < line.cost) {
+        return state;
+      }
+      
+      const newLines = state.productionLines.map(l =>
+        l.id === action.payload
+          ? { ...l, owned: l.owned + 1, cost: Math.floor(l.cost * 1.15) }
+          : l
+      );
+      
+      return {
+        ...state,
+        money: state.money - line.cost,
+        totalSpent: state.totalSpent + line.cost,
+        productionLines: newLines
+      };
+    
+    case 'UPDATE_PRODUCTION':
+      return {
+        ...state,
+        totalProduced: state.totalProduced + action.payload,
+        totalEarned: state.totalEarned + action.payload
+      };
+    
+    case 'UPDATE_MARKET':
+      return {
+        ...state,
+        marketConditions: state.marketConditions.map(market =>
+          market.id === action.payload.id
+            ? { ...market, efficiency: Math.max(0.3, Math.min(1.5, action.payload.efficiency)) }
+            : market
+        )
+      };
+    
+    case 'TRIGGER_EVENT':
+      return {
+        ...state,
+        currentEvent: action.payload
+      };
+    
+    case 'CLEAR_EVENT':
+      return {
+        ...state,
+        currentEvent: null
+      };
+    
+    case 'UPDATE_ACHIEVEMENTS':
+      return {
+        ...state,
+        achievements: action.payload
+      };
+    
+    case 'CLAIM_ACHIEVEMENT':
+      const achievement = state.achievements.find(a => a.id === action.payload);
+      if (!achievement || achievement.claimed || !achievement.unlocked) {
+        return state;
+      }
+      
+      const updatedAchievements = state.achievements.map(a =>
+        a.id === action.payload ? { ...a, claimed: true } : a
+      );
+      
+      return {
+        ...state,
+        money: state.money + achievement.reward,
+        achievements: updatedAchievements
+      };
+    
+    case 'PRESTIGE':
+      if (state.totalEarned < 1000000) return state;
+      
+      const newPrestigePoints = Math.floor(state.totalEarned / 1000000);
+      return {
+        ...initialState,
+        prestigeLevel: state.prestigeLevel + 1,
+        prestigePoints: state.prestigePoints + newPrestigePoints,
+        prestigeUpgrades: state.prestigeUpgrades,
+        settings: state.settings,
+        lastSave: state.lastSave
+      };
+    
+    case 'PURCHASE_PRESTIGE_UPGRADE':
+      const prestigeUpgrade = state.prestigeUpgrades.find(u => u.id === action.payload);
+      if (!prestigeUpgrade || state.prestigePoints < prestigeUpgrade.cost || prestigeUpgrade.owned >= prestigeUpgrade.maxLevel) {
+        return state;
+      }
+      
+      const newPrestigeUpgrades = state.prestigeUpgrades.map(u =>
+        u.id === action.payload
+          ? { ...u, owned: u.owned + 1, cost: u.cost + 1 }
+          : u
+      );
+      
+      return {
+        ...state,
+        prestigePoints: state.prestigePoints - prestigeUpgrade.cost,
+        prestigeUpgrades: newPrestigeUpgrades
+      };
+    
+    case 'UPDATE_SETTINGS':
+      return {
+        ...state,
+        settings: { ...state.settings, ...action.payload }
+      };
+    
+    case 'LOAD_GAME':
+      return { ...action.payload, lastSave: Date.now() };
+    
+    case 'RESET_GAME':
+      return { ...initialState };
+    
+    default:
+      return state;
   }
-];
-
-const allAchievements: Achievement[] = [
-  {
-    id: 'first-dollar',
-    name: 'First Profit',
-    description: 'Earn your first dollar',
-    unlocked: false,
-    progress: 0,
-    target: 1,
-    reward: 100,
-    type: 'money'
-  },
-  {
-    id: 'silicon-starter',
-    name: 'Silicon Starter',
-    description: 'Own 10 Silicon Extraction facilities',
-    unlocked: false,
-    progress: 0,
-    target: 10,
-    reward: 1000,
-    type: 'owned',
-    targetId: 'silicon-extraction',
-    unlockCondition: { type: 'achievement', value: 'first-dollar' }
-  },
-  {
-    id: 'automation-begins',
-    name: 'Automation Begins',
-    description: 'Hire your first manager',
-    unlocked: false,
-    progress: 0,
-    target: 1,
-    reward: 5000,
-    type: 'manager',
-    unlockCondition: { type: 'achievement', value: 'silicon-starter' }
-  },
-  {
-    id: 'thousand-club',
-    name: 'Thousand Club',
-    description: 'Earn $1,000',
-    unlocked: false,
-    progress: 0,
-    target: 1000,
-    reward: 2000,
-    type: 'money',
-    unlockCondition: { type: 'achievement', value: 'automation-begins' }
-  },
-  {
-    id: 'crystal-master',
-    name: 'Crystal Master',
-    description: 'Own 25 Crystal Growth facilities',
-    unlocked: false,
-    progress: 0,
-    target: 25,
-    reward: 25000,
-    type: 'owned',
-    targetId: 'crystal-growth',
-    unlockCondition: { type: 'achievement', value: 'thousand-club' }
-  },
-  {
-    id: 'upgrade-enthusiast',
-    name: 'Upgrade Enthusiast',
-    description: 'Purchase your first upgrade',
-    unlocked: false,
-    progress: 0,
-    target: 1,
-    reward: 10000,
-    type: 'upgrade',
-    unlockCondition: { type: 'achievement', value: 'crystal-master' }
-  },
-  {
-    id: 'millionaire',
-    name: 'Silicon Millionaire',
-    description: 'Earn $1 Million',
-    unlocked: false,
-    progress: 0,
-    target: 1000000,
-    reward: 500000,
-    type: 'money',
-    unlockCondition: { type: 'achievement', value: 'upgrade-enthusiast' }
-  },
-  {
-    id: 'automation-master',
-    name: 'Automation Master',
-    description: 'Hire managers for all production lines',
-    unlocked: false,
-    progress: 0,
-    target: 6,
-    reward: 1000000,
-    type: 'manager',
-    unlockCondition: { type: 'achievement', value: 'millionaire' }
-  },
-  {
-    id: 'prestige-ready',
-    name: 'Ready for Prestige',
-    description: 'Earn $10 Million (Ready for first prestige)',
-    unlocked: false,
-    progress: 0,
-    target: 10000000,
-    reward: 2000000,
-    type: 'money',
-    unlockCondition: { type: 'achievement', value: 'automation-master' }
-  },
-  {
-    id: 'wafer-wizard',
-    name: 'Wafer Wizard',
-    description: 'Own 100 Wafer Slicing facilities',
-    unlocked: false,
-    progress: 0,
-    target: 100,
-    reward: 5000000,
-    type: 'owned',
-    targetId: 'wafer-slicing',
-    unlockCondition: { type: 'achievement', value: 'prestige-ready' }
-  },
-  {
-    id: 'lithography-legend',
-    name: 'Lithography Legend',
-    description: 'Own 75 Lithography facilities',
-    unlocked: false,
-    progress: 0,
-    target: 75,
-    reward: 25000000,
-    type: 'owned',
-    targetId: 'lithography',
-    unlockCondition: { type: 'achievement', value: 'wafer-wizard' }
-  },
-  {
-    id: 'chip-champion',
-    name: 'Chip Champion',
-    description: 'Own 50 Chip Assembly facilities',
-    unlocked: false,
-    progress: 0,
-    target: 50,
-    reward: 100000000,
-    type: 'owned',
-    targetId: 'chip-assembly',
-    unlockCondition: { type: 'achievement', value: 'lithography-legend' }
-  },
-  {
-    id: 'cpu-king',
-    name: 'CPU King',
-    description: 'Own 25 CPU Production facilities',
-    unlocked: false,
-    progress: 0,
-    target: 25,
-    reward: 500000000,
-    type: 'owned',
-    targetId: 'cpu-production',
-    unlockCondition: { type: 'achievement', value: 'chip-champion' }
-  },
-  {
-    id: 'upgrade-collector',
-    name: 'Upgrade Collector',
-    description: 'Purchase 5 upgrades',
-    unlocked: false,
-    progress: 0,
-    target: 5,
-    reward: 50000000,
-    type: 'upgrade',
-    unlockCondition: { type: 'achievement', value: 'cpu-king' }
-  },
-  {
-    id: 'prestige-master',
-    name: 'Prestige Master',
-    description: 'Complete your first prestige',
-    unlocked: false,
-    progress: 0,
-    target: 1,
-    reward: 0,
-    type: 'prestige',
-    unlockCondition: { type: 'achievement', value: 'upgrade-collector' }
-  }
-];
-
-const prestigeUpgrades: PrestigeUpgrade[] = [
-  {
-    id: 'global-efficiency',
-    name: 'Global Efficiency',
-    description: 'Permanent 2x production multiplier',
-    cost: 1,
-    purchased: false,
-    effect: { type: 'production', multiplier: 2 }
-  },
-  {
-    id: 'cost-reduction',
-    name: 'Cost Optimization',
-    description: 'Reduce all costs by 20%',
-    cost: 2,
-    purchased: false,
-    effect: { type: 'cost', multiplier: 0.8 }
-  },
-  {
-    id: 'manager-discount',
-    name: 'HR Excellence',
-    description: 'Reduce manager costs by 50%',
-    cost: 3,
-    purchased: false,
-    effect: { type: 'manager', multiplier: 0.5 }
-  },
-  {
-    id: 'income-boost',
-    name: 'Market Dominance',
-    description: 'Permanent 3x income multiplier',
-    cost: 5,
-    purchased: false,
-    effect: { type: 'income', multiplier: 3 }
-  },
-  {
-    id: 'automation-speed',
-    name: 'Automation Excellence',
-    description: 'All managers work 2x faster',
-    cost: 8,
-    purchased: false,
-    effect: { type: 'production', multiplier: 2 }
-  },
-  {
-    id: 'mega-multiplier',
-    name: 'Mega Multiplier',
-    description: 'Ultimate 5x global production boost',
-    cost: 15,
-    purchased: false,
-    effect: { type: 'production', multiplier: 5 }
-  }
-];
-
-const marketEvents = [
-  {
-    id: 'chip-shortage',
-    title: 'Global Chip Shortage!',
-    description: 'High demand for semiconductors has created a shortage. Production values doubled!',
-    effect: 'Production x2',
-    duration: 60000,
-    multiplier: 2,
-    icon: 'TrendingUp',
-    color: 'from-green-500 to-emerald-600'
-  },
-  {
-    id: 'market-boom',
-    title: 'AI Technology Boom!',
-    description: 'Artificial intelligence demand has skyrocketed! All production tripled!',
-    effect: 'Production x3',
-    duration: 45000,
-    multiplier: 3,
-    icon: 'Zap',
-    color: 'from-yellow-500 to-orange-600'
-  },
-  {
-    id: 'supply-disruption',
-    title: 'Supply Chain Disruption',
-    description: 'Raw material shortages have impacted production. Efficiency reduced by 50%.',
-    effect: 'Production x0.5',
-    duration: 30000,
-    multiplier: 0.5,
-    icon: 'TrendingDown',
-    color: 'from-red-500 to-pink-600'
-  },
-  {
-    id: 'crypto-surge',
-    title: 'Cryptocurrency Surge!',
-    description: 'Mining demand increases chip prices. Income multiplied by 4!',
-    effect: 'Income x4',
-    duration: 40000,
-    multiplier: 4,
-    icon: 'DollarSign',
-    color: 'from-purple-500 to-violet-600'
-  },
-  {
-    id: 'tech-breakthrough',
-    title: 'Quantum Computing Breakthrough!',
-    description: 'New quantum tech increases all efficiency by 500%!',
-    effect: 'Production x5',
-    duration: 90000,
-    multiplier: 5,
-    icon: 'Cpu',
-    color: 'from-blue-500 to-cyan-600'
-  }
-];
+};
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [gameState, setGameState] = useState<GameState>({
-    money: 100,
-    totalEarned: 0,
-    totalSpent: 0,
-    productionLines: initialProductionLines,
-    upgrades: [],
-    achievements: [],
-    prestigeLevel: 0,
-    prestigeTokens: 0,
-    prestigeUpgrades: prestigeUpgrades,
-    currentEvent: null,
-    marketMultiplier: 1,
-    lastSave: Date.now(),
-    gameStartTime: Date.now(),
-    settings: {
-      soundEnabled: true,
-      notificationsEnabled: true,
-      autoSave: true
+  const [gameState, dispatch] = useReducer(gameReducer, initialState);
+
+  // Auto-save functionality
+  useEffect(() => {
+    if (gameState.settings.autoSave) {
+      const saveInterval = setInterval(() => {
+        saveGame();
+      }, 30000); // Save every 30 seconds
+
+      return () => clearInterval(saveInterval);
     }
-  });
+  }, [gameState.settings.autoSave, saveGame]);
 
   // Load game on mount
   useEffect(() => {
     loadGame();
-  }, []);
+  }, [loadGame]);
 
-  // Auto-save every 30 seconds
-  useEffect(() => {
-    if (gameState.settings.autoSave) {
-      const interval = setInterval(() => {
-        saveGame();
-      }, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [gameState.settings.autoSave]);
-
-  // Market fluctuation system
+  // Market fluctuation
   useEffect(() => {
     const marketInterval = setInterval(() => {
-      setGameState(prev => {
-        const baseMultiplier = 1;
-        const variation = 0.3; // 30% variation
-        const newMultiplier = baseMultiplier + (Math.random() - 0.5) * variation;
-        return {
-          ...prev,
-          marketMultiplier: Math.max(0.7, Math.min(1.3, newMultiplier))
-        };
+      gameState.marketConditions.forEach(market => {
+        const fluctuation = (Math.random() - 0.5) * 0.3; // ±15% change
+        const newEfficiency = Math.max(0.3, Math.min(1.5, market.efficiency + fluctuation));
+        
+        dispatch({
+          type: 'UPDATE_MARKET',
+          payload: { id: market.id, efficiency: newEfficiency }
+        });
       });
-    }, 15000); // Change every 15 seconds
+    }, 15000); // Update every 15 seconds
 
     return () => clearInterval(marketInterval);
-  }, []);
+  }, [gameState.marketConditions]);
 
-  // Random events system
+  // Random events
   useEffect(() => {
     const eventInterval = setInterval(() => {
-      if (!gameState.currentEvent && Math.random() < 0.15) { // 15% chance every 45 seconds
-        const randomEvent = marketEvents[Math.floor(Math.random() * marketEvents.length)];
-        setGameState(prev => ({ ...prev, currentEvent: randomEvent }));
+      if (!gameState.currentEvent && Math.random() < 0.1) { // 10% chance every interval
+        const events = [
+          { id: 1, title: "Tech Breakthrough!", description: "Production efficiency increased by 20% for 60 seconds!", effect: "production", value: 1.2, duration: 60000 },
+          { id: 2, title: "Market Boom!", description: "All markets are performing at 150% for 45 seconds!", effect: "market", value: 1.5, duration: 45000 },
+          { id: 3, title: "Investment Opportunity", description: "Get 50% more money from sales for 30 seconds!", effect: "income", value: 1.5, duration: 30000 },
+          { id: 4, title: "Supply Chain Issues", description: "Production costs increased by 30% for 90 seconds.", effect: "cost", value: 1.3, duration: 90000 },
+        ];
+        
+        const randomEvent = events[Math.floor(Math.random() * events.length)];
+        dispatch({ type: 'TRIGGER_EVENT', payload: randomEvent });
+        
+        setTimeout(() => {
+          dispatch({ type: 'CLEAR_EVENT' });
+        }, randomEvent.duration);
       }
-    }, 45000);
+    }, 30000); // Check every 30 seconds
 
     return () => clearInterval(eventInterval);
   }, [gameState.currentEvent]);
 
-  // Auto-production loop with prestige bonuses
+  // Production loop
   useEffect(() => {
-    const interval = setInterval(() => {
-      setGameState(prev => {
-        const newState = { ...prev };
-        let totalProduction = 0;
-
-        // Calculate prestige bonuses
-        const productionBonus = prev.prestigeUpgrades
-          .filter(u => u.purchased && u.effect.type === 'production')
-          .reduce((acc, u) => acc * u.effect.multiplier, 1);
-
-        const incomeBonus = prev.prestigeUpgrades
-          .filter(u => u.purchased && u.effect.type === 'income')
-          .reduce((acc, u) => acc * u.effect.multiplier, 1);
-
-        newState.productionLines = prev.productionLines.map(line => {
-          if (line.owned > 0 && line.managerHired) {
-            const eventMultiplier = prev.currentEvent?.multiplier || 1;
-            const production = line.baseProduction * line.owned * line.level * 
-                             prev.marketMultiplier * productionBonus * eventMultiplier * incomeBonus;
-            totalProduction += production;
-          }
-          return line;
-        });
-
-        if (totalProduction > 0) {
-          newState.money += totalProduction;
-          newState.totalEarned += totalProduction;
+    const productionInterval = setInterval(() => {
+      let totalIncome = 0;
+      
+      gameState.productionLines.forEach(line => {
+        if (line.owned > 0) {
+          const market = gameState.marketConditions.find(m => m.name.toLowerCase().includes(line.name.toLowerCase().split(' ')[0]));
+          const marketEfficiency = market ? market.efficiency : 1;
+          
+          const upgradeMultiplier = gameState.upgrades
+            .filter(u => u.affects === line.id && u.owned > 0)
+            .reduce((mult, upgrade) => mult + (upgrade.effect * upgrade.owned), 1);
+          
+          const prestigeMultiplier = gameState.prestigeUpgrades
+            .filter(u => u.owned > 0)
+            .reduce((mult, upgrade) => mult + (upgrade.effect * upgrade.owned), 1);
+          
+          const eventMultiplier = gameState.currentEvent?.effect === 'income' ? gameState.currentEvent.value : 1;
+          
+          const income = line.owned * line.production * marketEfficiency * upgradeMultiplier * prestigeMultiplier * eventMultiplier;
+          totalIncome += income;
         }
-
-        return newState;
       });
+      
+      if (totalIncome > 0) {
+        dispatch({ type: 'UPDATE_MONEY', payload: gameState.money + totalIncome });
+        dispatch({ type: 'UPDATE_PRODUCTION', payload: totalIncome });
+      }
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => clearInterval(productionInterval);
+  }, [gameState.money, gameState.productionLines, gameState.upgrades, gameState.marketConditions, gameState.prestigeUpgrades, gameState.currentEvent]);
 
-  // Update available upgrades and achievements
+  // Achievement tracking
   useEffect(() => {
-    setGameState(prev => {
-      const availableUpgrades = allUpgrades.filter(upgrade => {
-        if (prev.upgrades.some(u => u.id === upgrade.id)) return false;
-        
-        const condition = upgrade.unlockCondition;
-        switch (condition.type) {
-          case 'money':
-            return prev.totalEarned >= condition.value;
-          case 'owned':
-            const line = prev.productionLines.find(l => l.id === condition.target);
-            return line && line.owned >= condition.value;
-          case 'achievement':
-            return prev.achievements.some(a => a.id === condition.value && a.unlocked);
-          case 'prestige':
-            return prev.prestigeLevel >= condition.value;
-          default:
-            return true;
-        }
-      });
+    const updatedAchievements = gameState.achievements.map(achievement => {
+      let progress = 0;
+      let unlocked = achievement.unlocked;
 
-      const availableAchievements = allAchievements.filter(achievement => {
-        if (prev.achievements.some(a => a.id === achievement.id)) return false;
-        
-        if (achievement.unlockCondition) {
-          const condition = achievement.unlockCondition;
-          if (condition.type === 'achievement') {
-            return prev.achievements.some(a => a.id === condition.value && a.unlocked);
-          }
-        }
-        return true;
-      });
+      switch (achievement.type) {
+        case 'money':
+          progress = gameState.money;
+          break;
+        case 'total_earned':
+          progress = gameState.totalEarned;
+          break;
+        case 'production_lines':
+          progress = gameState.productionLines.reduce((total, line) => total + line.owned, 0);
+          break;
+        case 'upgrades':
+          progress = gameState.upgrades.reduce((total, upgrade) => total + upgrade.owned, 0);
+          break;
+        case 'prestige':
+          progress = gameState.prestigeLevel;
+          break;
+      }
 
-      return {
-        ...prev,
-        upgrades: [...prev.upgrades, ...availableUpgrades],
-        achievements: [...prev.achievements, ...availableAchievements]
-      };
+      if (progress >= achievement.target && !unlocked) {
+        unlocked = true;
+      }
+
+      return { ...achievement, progress, unlocked };
     });
-  }, [gameState.money, gameState.totalEarned, gameState.prestigeLevel]);
 
-  // Track achievements
-  useEffect(() => {
-    setGameState(prev => {
-      const updatedAchievements = prev.achievements.map(achievement => {
-        let progress = achievement.progress;
-        
-        switch (achievement.type) {
-          case 'money':
-            progress = prev.totalEarned;
-            break;
-          case 'owned':
-            if (achievement.targetId) {
-              const line = prev.productionLines.find(l => l.id === achievement.targetId);
-              progress = line?.owned || 0;
-            }
-            break;
-          case 'manager':
-            progress = prev.productionLines.filter(l => l.managerHired).length;
-            break;
-          case 'upgrade':
-            progress = prev.upgrades.filter(u => u.purchased).length;
-            break;
-          case 'prestige':
-            progress = prev.prestigeLevel;
-            break;
-        }
-
-        const wasUnlocked = achievement.unlocked;
-        const isUnlocked = progress >= achievement.target;
-        
-        if (isUnlocked && !wasUnlocked) {
-          // Achievement unlocked! Add reward
-          setTimeout(() => {
-            setGameState(current => ({
-              ...current,
-              money: current.money + achievement.reward
-            }));
-          }, 100);
-        }
-
-        return {
-          ...achievement,
-          progress,
-          unlocked: isUnlocked
-        };
-      });
-
-      return { ...prev, achievements: updatedAchievements };
-    });
+    dispatch({ type: 'UPDATE_ACHIEVEMENTS', payload: updatedAchievements });
   }, [gameState.money, gameState.totalEarned, gameState.productionLines, gameState.upgrades, gameState.prestigeLevel]);
 
+  const purchaseUpgrade = useCallback((upgradeId: string) => {
+    dispatch({ type: 'PURCHASE_UPGRADE', payload: upgradeId });
+  }, [dispatch]);
+
+  const purchaseProductionLine = useCallback((lineId: string) => {
+    dispatch({ type: 'PURCHASE_PRODUCTION_LINE', payload: lineId });
+  }, [dispatch]);
+
+  const purchasePrestigeUpgrade = useCallback((upgradeId: string) => {
+    dispatch({ type: 'PURCHASE_PRESTIGE_UPGRADE', payload: upgradeId });
+  }, [dispatch]);
+
+  const claimAchievement = useCallback((achievementId: string) => {
+    dispatch({ type: 'CLAIM_ACHIEVEMENT', payload: achievementId });
+  }, [dispatch]);
+
+  const prestige = useCallback(() => {
+    dispatch({ type: 'PRESTIGE' });
+  }, [dispatch]);
+
+  const updateSettings = useCallback((settings: Partial<GameSettings>) => {
+    dispatch({ type: 'UPDATE_SETTINGS', payload: settings });
+  }, [dispatch]);
+
   const saveGame = useCallback(() => {
-    const saveData = {
-      ...gameState,
-      lastSave: Date.now()
-    };
-    localStorage.setItem('siliconFabEmpire', JSON.stringify(saveData));
-    console.log('Game saved successfully!');
+    try {
+      const saveData = { ...gameState, lastSave: Date.now() };
+      localStorage.setItem('silicon-fab-empire-save', JSON.stringify(saveData));
+      console.log('Game saved successfully!');
+    } catch (error) {
+      console.error('Failed to save game:', error);
+    }
   }, [gameState]);
 
   const loadGame = useCallback(() => {
-    const savedData = localStorage.getItem('siliconFabEmpire');
-    if (savedData) {
-      try {
+    try {
+      const savedData = localStorage.getItem('silicon-fab-empire-save');
+      if (savedData) {
         const parsedData = JSON.parse(savedData);
-        setGameState(prev => ({
-          ...prev,
-          ...parsedData,
-          upgrades: parsedData.upgrades || [],
-          achievements: parsedData.achievements || [],
-          settings: { ...prev.settings, ...parsedData.settings }
-        }));
+        dispatch({ type: 'LOAD_GAME', payload: parsedData });
         console.log('Game loaded successfully!');
-      } catch (error) {
-        console.error('Failed to load game:', error);
       }
+    } catch (error) {
+      console.error('Failed to load game:', error);
     }
-  }, []);
+  }, [dispatch]);
 
   const resetGame = useCallback(() => {
-    localStorage.removeItem('siliconFabEmpire');
-    setGameState({
-      money: 100,
-      totalEarned: 0,
-      totalSpent: 0,
-      productionLines: initialProductionLines,
-      upgrades: [],
-      achievements: [],
-      prestigeLevel: 0,
-      prestigeTokens: 0,
-      prestigeUpgrades: prestigeUpgrades,
-      currentEvent: null,
-      marketMultiplier: 1,
-      lastSave: Date.now(),
-      gameStartTime: Date.now(),
-      settings: {
-        soundEnabled: true,
-        notificationsEnabled: true,
-        autoSave: true
+    localStorage.removeItem('silicon-fab-empire-save');
+    dispatch({ type: 'RESET_GAME' });
+  }, [dispatch]);
+
+  const exportSave = useCallback(() => {
+    const saveData = { ...gameState, lastSave: Date.now() };
+    return JSON.stringify(saveData, null, 2);
+  }, [gameState]);
+
+  const importSave = useCallback((saveDataString: string) => {
+    try {
+      const saveData = JSON.parse(saveDataString);
+      dispatch({ type: 'LOAD_GAME', payload: saveData });
+      localStorage.setItem('silicon-fab-empire-save', saveDataString);
+      return true;
+    } catch (error) {
+      console.error('Failed to import save:', error);
+      return false;
+    }
+  }, [dispatch]);
+
+  const getVisibleUpgrades = useCallback(() => {
+    const unlockedAchievements = gameState.achievements.filter(a => a.unlocked).length;
+    const totalSpent = gameState.totalSpent;
+    
+    return gameState.upgrades.filter(upgrade => {
+      if (upgrade.unlockCondition) {
+        if (upgrade.unlockCondition.type === 'achievements') {
+          return unlockedAchievements >= upgrade.unlockCondition.value;
+        }
+        if (upgrade.unlockCondition.type === 'spent') {
+          return totalSpent >= upgrade.unlockCondition.value;
+        }
+        if (upgrade.unlockCondition.type === 'prestige') {
+          return gameState.prestigeLevel >= upgrade.unlockCondition.value;
+        }
       }
+      return true;
     });
-  }, []);
+  }, [gameState.achievements, gameState.totalSpent, gameState.prestigeLevel, gameState.upgrades]);
 
-  const updateMoney = useCallback((amount: number) => {
-    setGameState(prev => ({
-      ...prev,
-      money: prev.money + amount,
-      totalEarned: prev.totalEarned + Math.max(0, amount),
-      totalSpent: prev.totalSpent + Math.max(0, -amount)
-    }));
-  }, []);
-
-  const buyProductionLine = useCallback((id: string) => {
-    setGameState(prev => {
-      const line = prev.productionLines.find(l => l.id === id);
-      if (!line) return prev;
-
-      const costReduction = prev.prestigeUpgrades
-        .filter(u => u.purchased && u.effect.type === 'cost')
-        .reduce((acc, u) => acc * u.effect.multiplier, 1);
-
-      const cost = line.baseCost * Math.pow(1.15, line.owned) * costReduction;
-      if (prev.money < cost) return prev;
-
-      return {
-        ...prev,
-        money: prev.money - cost,
-        totalSpent: prev.totalSpent + cost,
-        productionLines: prev.productionLines.map(l =>
-          l.id === id ? { ...l, owned: l.owned + 1 } : l
-        )
-      };
-    });
-  }, []);
-
-  const hireManager = useCallback((id: string) => {
-    setGameState(prev => {
-      const line = prev.productionLines.find(l => l.id === id);
-      if (!line || line.managerHired) return prev;
-
-      const managerDiscount = prev.prestigeUpgrades
-        .filter(u => u.purchased && u.effect.type === 'manager')
-        .reduce((acc, u) => acc * u.effect.multiplier, 1);
-
-      const cost = line.managerCost * managerDiscount;
-      if (prev.money < cost) return prev;
-
-      return {
-        ...prev,
-        money: prev.money - cost,
-        totalSpent: prev.totalSpent + cost,
-        productionLines: prev.productionLines.map(l =>
-          l.id === id ? { ...l, managerHired: true } : l
-        )
-      };
-    });
-  }, []);
-
-  const buyUpgrade = useCallback((id: string) => {
-    setGameState(prev => {
-      const upgrade = prev.upgrades.find(u => u.id === id);
-      if (!upgrade || upgrade.purchased || prev.money < upgrade.cost) return prev;
-
-      return {
-        ...prev,
-        money: prev.money - upgrade.cost,
-        totalSpent: prev.totalSpent + upgrade.cost,
-        upgrades: prev.upgrades.map(u =>
-          u.id === id ? { ...u, purchased: true } : u
-        ),
-        productionLines: upgrade.category === 'global' 
-          ? prev.productionLines.map(l => ({ ...l, level: l.level * upgrade.multiplier }))
-          : prev.productionLines.map(l =>
-              l.id === upgrade.category ? { ...l, level: l.level * upgrade.multiplier } : l
-            )
-      };
-    });
-  }, []);
-
-  const buyPrestigeUpgrade = useCallback((id: string) => {
-    setGameState(prev => {
-      const upgrade = prev.prestigeUpgrades.find(u => u.id === id);
-      if (!upgrade || upgrade.purchased || prev.prestigeTokens < upgrade.cost) return prev;
-
-      return {
-        ...prev,
-        prestigeTokens: prev.prestigeTokens - upgrade.cost,
-        prestigeUpgrades: prev.prestigeUpgrades.map(u =>
-          u.id === id ? { ...u, purchased: true } : u
-        )
-      };
-    });
-  }, []);
-
-  const clickProduction = useCallback((id: string) => {
-    setGameState(prev => {
-      const line = prev.productionLines.find(l => l.id === id);
-      if (!line || line.owned === 0) return prev;
-
-      const eventMultiplier = prev.currentEvent?.multiplier || 1;
-      const production = line.baseProduction * line.level * prev.marketMultiplier * eventMultiplier;
+  const getVisibleAchievements = useCallback(() => {
+    const unlockedCount = gameState.achievements.filter(a => a.unlocked).length;
+    
+    return gameState.achievements.filter((achievement, index) => {
+      if (index === 0) return true; // Always show first achievement
+      if (achievement.unlocked) return true; // Always show unlocked achievements
       
-      return {
-        ...prev,
-        money: prev.money + production,
-        totalEarned: prev.totalEarned + production
-      };
+      // Show next achievement if previous one is unlocked
+      const prevAchievement = gameState.achievements[index - 1];
+      return prevAchievement && prevAchievement.unlocked;
     });
-  }, []);
-
-  const prestige = useCallback(() => {
-    setGameState(prev => {
-      const prestigeTokens = Math.floor(prev.totalEarned / 10000000); // 10M per token
-      if (prestigeTokens === 0) return prev;
-
-      return {
-        money: 100,
-        totalEarned: 0,
-        totalSpent: 0,
-        productionLines: initialProductionLines,
-        upgrades: [],
-        achievements: [],
-        prestigeLevel: prev.prestigeLevel + 1,
-        prestigeTokens: prev.prestigeTokens + prestigeTokens,
-        prestigeUpgrades: prev.prestigeUpgrades,
-        currentEvent: null,
-        marketMultiplier: 1,
-        lastSave: Date.now(),
-        gameStartTime: Date.now(),
-        settings: prev.settings
-      };
-    });
-  }, []);
-
-  const updateSettings = useCallback((newSettings: Partial<GameState['settings']>) => {
-    setGameState(prev => ({
-      ...prev,
-      settings: { ...prev.settings, ...newSettings }
-    }));
-  }, []);
+  }, [gameState.achievements]);
 
   const contextValue: GameContextType = {
     gameState,
-    updateMoney,
-    buyProductionLine,
-    hireManager,
-    buyUpgrade,
-    buyPrestigeUpgrade,
+    purchaseUpgrade,
+    purchaseProductionLine,
+    purchasePrestigeUpgrade,
+    claimAchievement,
     prestige,
-    clickProduction,
+    updateSettings,
     saveGame,
     loadGame,
     resetGame,
-    updateSettings
+    exportSave,
+    importSave,
+    getVisibleUpgrades,
+    getVisibleAchievements
   };
 
   return (
@@ -1009,7 +540,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useGame = () => {
   const context = useContext(GameContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useGame must be used within a GameProvider');
   }
   return context;

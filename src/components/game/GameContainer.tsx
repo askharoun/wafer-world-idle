@@ -17,7 +17,7 @@ const GameContainer = () => {
 
   return (
     <GameProvider>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 text-white overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 text-white">
         <div 
           className="absolute inset-0 opacity-50"
           style={{ backgroundImage: backgroundPattern }}
@@ -26,19 +26,22 @@ const GameContainer = () => {
         <div className="relative z-10">
           <GameHeader />
           
-          <div className="container mx-auto px-4 py-6">
-            <div className="grid grid-cols-1 xl:grid-cols-6 gap-6">
-              <div className="xl:col-span-3">
+          <div className="container mx-auto px-2 sm:px-4 lg:px-6 py-2 sm:py-4 lg:py-6 max-w-7xl">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-6">
+              {/* Production Lines - Full width on mobile, 5 cols on large screens */}
+              <div className="lg:col-span-5">
                 <ProductionLines />
               </div>
               
-              <div className="xl:col-span-1">
+              {/* Upgrades - Full width on mobile, 3 cols on large screens */}
+              <div className="lg:col-span-3">
                 <UpgradePanel />
               </div>
               
-              <div className="xl:col-span-2 space-y-6">
+              {/* Stats and Achievements - Full width on mobile, 4 cols on large screens */}
+              <div className="lg:col-span-4 space-y-3 sm:space-y-4 lg:space-y-6">
                 <PrestigePanel />
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-1 gap-6">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                   <StatsPanel />
                   <AchievementPanel />
                 </div>
