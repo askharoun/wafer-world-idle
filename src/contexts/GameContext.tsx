@@ -210,6 +210,16 @@ const allUpgrades: Upgrade[] = [
     unlockCondition: { type: 'owned', value: 25, target: 'silicon-extraction' }
   },
   {
+    id: 'silicon-efficiency-3',
+    name: 'Advanced Silicon Mining',
+    description: 'Quintuple silicon extraction with AI optimization',
+    cost: 1000000,
+    multiplier: 5,
+    purchased: false,
+    category: 'silicon-extraction',
+    unlockCondition: { type: 'money', value: 500000 }
+  },
+  {
     id: 'crystal-purity-1',
     name: 'Crystal Purity I',
     description: 'Triple crystal growth rate',
@@ -230,6 +240,16 @@ const allUpgrades: Upgrade[] = [
     unlockCondition: { type: 'owned', value: 50, target: 'crystal-growth' }
   },
   {
+    id: 'crystal-purity-3',
+    name: 'Quantum Crystal Synthesis',
+    description: 'Revolutionary 10x crystal growth enhancement',
+    cost: 50000000,
+    multiplier: 10,
+    purchased: false,
+    category: 'crystal-growth',
+    unlockCondition: { type: 'money', value: 10000000 }
+  },
+  {
     id: 'precision-cutting-1',
     name: 'Precision Cutting I',
     description: 'Quadruple wafer slicing speed',
@@ -240,6 +260,16 @@ const allUpgrades: Upgrade[] = [
     unlockCondition: { type: 'owned', value: 15, target: 'wafer-slicing' }
   },
   {
+    id: 'precision-cutting-2',
+    name: 'Laser Precision Cutting',
+    description: 'Advanced laser cutting - 7x multiplier',
+    cost: 5000000,
+    multiplier: 7,
+    purchased: false,
+    category: 'wafer-slicing',
+    unlockCondition: { type: 'achievement', value: 'crystal-master' }
+  },
+  {
     id: 'nano-lithography',
     name: 'Nano Lithography',
     description: 'Revolutionary 7nm process - 10x multiplier',
@@ -248,6 +278,16 @@ const allUpgrades: Upgrade[] = [
     purchased: false,
     category: 'lithography',
     unlockCondition: { type: 'money', value: 10000000 }
+  },
+  {
+    id: 'euv-lithography',
+    name: 'EUV Lithography',
+    description: 'Extreme ultraviolet tech - 20x multiplier',
+    cost: 1000000000,
+    multiplier: 20,
+    purchased: false,
+    category: 'lithography',
+    unlockCondition: { type: 'achievement', value: 'automation-master' }
   },
   {
     id: 'quantum-assembly',
@@ -268,6 +308,16 @@ const allUpgrades: Upgrade[] = [
     purchased: false,
     category: 'global',
     unlockCondition: { type: 'achievement', value: 'automation-master' }
+  },
+  {
+    id: 'molecular-assembly',
+    name: 'Molecular Assembly',
+    description: 'Atomic-level precision - 50x global multiplier',
+    cost: 100000000000,
+    multiplier: 50,
+    purchased: false,
+    category: 'global',
+    unlockCondition: { type: 'prestige', value: 3 }
   }
 ];
 
@@ -371,6 +421,76 @@ const allAchievements: Achievement[] = [
     reward: 2000000,
     type: 'money',
     unlockCondition: { type: 'achievement', value: 'automation-master' }
+  },
+  {
+    id: 'wafer-wizard',
+    name: 'Wafer Wizard',
+    description: 'Own 100 Wafer Slicing facilities',
+    unlocked: false,
+    progress: 0,
+    target: 100,
+    reward: 5000000,
+    type: 'owned',
+    targetId: 'wafer-slicing',
+    unlockCondition: { type: 'achievement', value: 'prestige-ready' }
+  },
+  {
+    id: 'lithography-legend',
+    name: 'Lithography Legend',
+    description: 'Own 75 Lithography facilities',
+    unlocked: false,
+    progress: 0,
+    target: 75,
+    reward: 25000000,
+    type: 'owned',
+    targetId: 'lithography',
+    unlockCondition: { type: 'achievement', value: 'wafer-wizard' }
+  },
+  {
+    id: 'chip-champion',
+    name: 'Chip Champion',
+    description: 'Own 50 Chip Assembly facilities',
+    unlocked: false,
+    progress: 0,
+    target: 50,
+    reward: 100000000,
+    type: 'owned',
+    targetId: 'chip-assembly',
+    unlockCondition: { type: 'achievement', value: 'lithography-legend' }
+  },
+  {
+    id: 'cpu-king',
+    name: 'CPU King',
+    description: 'Own 25 CPU Production facilities',
+    unlocked: false,
+    progress: 0,
+    target: 25,
+    reward: 500000000,
+    type: 'owned',
+    targetId: 'cpu-production',
+    unlockCondition: { type: 'achievement', value: 'chip-champion' }
+  },
+  {
+    id: 'upgrade-collector',
+    name: 'Upgrade Collector',
+    description: 'Purchase 5 upgrades',
+    unlocked: false,
+    progress: 0,
+    target: 5,
+    reward: 50000000,
+    type: 'upgrade',
+    unlockCondition: { type: 'achievement', value: 'cpu-king' }
+  },
+  {
+    id: 'prestige-master',
+    name: 'Prestige Master',
+    description: 'Complete your first prestige',
+    unlocked: false,
+    progress: 0,
+    target: 1,
+    reward: 0,
+    type: 'prestige',
+    unlockCondition: { type: 'achievement', value: 'upgrade-collector' }
   }
 ];
 
@@ -406,6 +526,22 @@ const prestigeUpgrades: PrestigeUpgrade[] = [
     cost: 5,
     purchased: false,
     effect: { type: 'income', multiplier: 3 }
+  },
+  {
+    id: 'automation-speed',
+    name: 'Automation Excellence',
+    description: 'All managers work 2x faster',
+    cost: 8,
+    purchased: false,
+    effect: { type: 'production', multiplier: 2 }
+  },
+  {
+    id: 'mega-multiplier',
+    name: 'Mega Multiplier',
+    description: 'Ultimate 5x global production boost',
+    cost: 15,
+    purchased: false,
+    effect: { type: 'production', multiplier: 5 }
   }
 ];
 
