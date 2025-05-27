@@ -4,6 +4,7 @@ import { GameProvider } from '../../contexts/GameContext';
 import GameHeader from './GameHeader';
 import ProductionLines from './ProductionLines';
 import UpgradePanel from './UpgradePanel';
+import ActionPanel from './ActionPanel';
 import StatsPanel from './StatsPanel';
 import AchievementPanel from './AchievementPanel';
 import PrestigePanel from './PrestigePanel';
@@ -34,6 +35,11 @@ const GameContainer = () => {
             {/* Production Lines - Full width */}
             <div className="mb-6">
               <ProductionLines />
+            </div>
+            
+            {/* Action Panel - Full width */}
+            <div className="mb-6">
+              <ActionPanel />
             </div>
             
             {/* Upgrades - Full width */}

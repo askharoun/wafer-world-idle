@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 
 // Define the types for upgrades, production lines, market conditions, and achievements
@@ -63,6 +62,7 @@ interface GameState {
   money: number;
   totalEarned: number;
   totalSpent: number;
+  totalProduced: number;
   productionLines: ProductionLine[];
   upgrades: Upgrade[];
   marketConditions: MarketCondition[];
@@ -84,6 +84,12 @@ interface GameState {
   lastSave: number;
   marketMultiplier: number;
   gameStartTime: number;
+  clickCount: number;
+  totalClicks: number;
+  boostActive: boolean;
+  boostEndTime: number;
+  autoClickerActive: boolean;
+  researchPoints: number;
 }
 
 interface GameContextType {
@@ -106,6 +112,7 @@ interface GameContextType {
   importSave: (saveDataString: string) => boolean;
   getVisibleUpgrades: () => Upgrade[];
   getVisibleAchievements: () => Achievement[];
+  dispatch: React.Dispatch<any>;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -114,6 +121,7 @@ const initialState: GameState = {
   money: 500,
   totalEarned: 0,
   totalSpent: 0,
+  totalProduced: 0,
   productionLines: [
     { 
       id: 'line1', 
@@ -215,6 +223,10 @@ const initialState: GameState = {
     { id: 'upgrade6', name: 'Global Marketing', description: 'Increase all production by 10%', cost: 750000, effect: 0.1, owned: 0, maxLevel: 5, affects: 'all', purchased: false, multiplier: 1.1, unlockCondition: { type: 'spent', value: 500000 } },
     { id: 'upgrade7', name: 'Government Subsidies', description: 'Reduce all production costs by 15%', cost: 1250000, effect: -0.15, owned: 0, maxLevel: 5, affects: 'cost', purchased: false, multiplier: 0.85, unlockCondition: { type: 'achievements', value: 5 } },
     { id: 'upgrade8', name: 'Prestige Production', description: 'Increase all production by 5% per prestige level', cost: 2500000, effect: 0.05, owned: 0, maxLevel: 1, affects: 'prestige', purchased: false, multiplier: 1.05, unlockCondition: { type: 'prestige', value: 1 } },
+    { id: 'upgrade9', name: 'Speed Boost', description: 'Production speed increased by 25%', cost: 3000000, effect: 0.25, owned: 0, maxLevel: 3, affects: 'speed', purchased: false, multiplier: 1.25, unlockCondition: { type: 'total_earned', value: 2500000 } },
+    { id: 'upgrade10', name: 'Click Power', description: 'Manual clicks produce 10x more', cost: 1500000, effect: 10, owned: 0, maxLevel: 5, affects: 'click', purchased: false, multiplier: 10, unlockCondition: { type: 'achievements', value: 3 } },
+    { id: 'upgrade11', name: 'Auto Clicker', description: 'Automatically clicks every 2 seconds', cost: 5000000, effect: 1, owned: 0, maxLevel: 1, affects: 'auto', purchased: false, multiplier: 1, unlockCondition: { type: 'prestige', value: 2 } },
+    { id: 'upgrade12', name: 'Research Lab', description: 'Unlocks special research bonuses', cost: 10000000, effect: 0.5, owned: 0, maxLevel: 1, affects: 'research', purchased: false, multiplier: 1.5, unlockCondition: { type: 'total_earned', value: 8000000 } },
   ],
   marketConditions: [
     { id: 'market1', name: 'Silicon Market', efficiency: 1.0 },
@@ -232,14 +244,26 @@ const initialState: GameState = {
     { id: 'ach6', name: 'Money Maker', description: 'Earn $1,000,000.', reward: 1000000, target: 1000000, type: 'money', progress: 0, unlocked: false, claimed: false },
     { id: 'ach7', name: 'Upgrade Master', description: 'Purchase 10 upgrades.', reward: 500000, target: 10, type: 'upgrades', progress: 0, unlocked: false, claimed: false },
     { id: 'ach8', name: 'Prestige Player', description: 'Prestige once.', reward: 1000000, target: 1, type: 'prestige', progress: 0, unlocked: false, claimed: false },
+    { id: 'ach9', name: 'Click Master', description: 'Click production 100 times.', reward: 250000, target: 100, type: 'clicks', progress: 0, unlocked: false, claimed: false },
+    { id: 'ach10', name: 'Manager Mogul', description: 'Hire 5 managers.', reward: 750000, target: 5, type: 'managers', progress: 0, unlocked: false, claimed: false },
+    { id: 'ach11', name: 'Speed Demon', description: 'Reach 1M$/sec production.', reward: 2000000, target: 1000000, type: 'production_rate', progress: 0, unlocked: false, claimed: false },
+    { id: 'ach12', name: 'Empire Builder', description: 'Own 100 production units total.', reward: 5000000, target: 100, type: 'total_owned', progress: 0, unlocked: false, claimed: false },
   ],
   currentEvent: null,
   prestigeLevel: 0,
   prestigePoints: 0,
   prestigeTokens: 0,
   prestigeUpgrades: [
-    { id: 'prestige1', name: 'Enhanced Automation', description: 'Increase base production by 10% per level', cost: 1, effect: 0.1, owned: 0, maxLevel: 5, affects: 'all', purchased: false, multiplier: 1.1 },
-    { id: 'prestige2', name: 'Skilled Workforce', description: 'Reduce production costs by 5% per level', cost: 1, effect: -0.05, owned: 0, maxLevel: 5, affects: 'cost', purchased: false, multiplier: 0.95 },
+    { id: 'prestige1', name: 'Enhanced Automation', description: 'Increase base production by 10% per level', cost: 1, effect: 0.1, owned: 0, maxLevel: 10, affects: 'all', purchased: false, multiplier: 1.1 },
+    { id: 'prestige2', name: 'Skilled Workforce', description: 'Reduce production costs by 5% per level', cost: 1, effect: -0.05, owned: 0, maxLevel: 10, affects: 'cost', purchased: false, multiplier: 0.95 },
+    { id: 'prestige3', name: 'Market Mastery', description: 'Improve market conditions by 15% per level', cost: 2, effect: 0.15, owned: 0, maxLevel: 5, affects: 'market', purchased: false, multiplier: 1.15 },
+    { id: 'prestige4', name: 'Research Efficiency', description: 'Unlock research bonuses 25% faster', cost: 3, effect: 0.25, owned: 0, maxLevel: 5, affects: 'research', purchased: false, multiplier: 1.25 },
+    { id: 'prestige5', name: 'Mega Boost', description: 'All income multiplied by 2x per level', cost: 5, effect: 2, owned: 0, maxLevel: 3, affects: 'mega', purchased: false, multiplier: 2 },
+    { id: 'prestige6', name: 'Time Warp', description: 'Production speed increased by 50% per level', cost: 4, effect: 0.5, owned: 0, maxLevel: 5, affects: 'speed', purchased: false, multiplier: 1.5 },
+    { id: 'prestige7', name: 'Lucky Streak', description: 'Higher chance for beneficial events', cost: 2, effect: 0.2, owned: 0, maxLevel: 3, affects: 'luck', purchased: false, multiplier: 1.2 },
+    { id: 'prestige8', name: 'Manager Genius', description: 'Managers work 100% faster per level', cost: 3, effect: 1, owned: 0, maxLevel: 5, affects: 'managers', purchased: false, multiplier: 2 },
+    { id: 'prestige9', name: 'Click Overlord', description: 'Manual clicks worth 500% more per level', cost: 2, effect: 5, owned: 0, maxLevel: 5, affects: 'click_power', purchased: false, multiplier: 5 },
+    { id: 'prestige10', name: 'Prestige Master', description: 'Gain 50% more prestige tokens', cost: 10, effect: 0.5, owned: 0, maxLevel: 1, affects: 'prestige_gain', purchased: false, multiplier: 1.5 },
   ],
   settings: {
     soundEnabled: true,
@@ -249,6 +273,12 @@ const initialState: GameState = {
   lastSave: Date.now(),
   marketMultiplier: 1.0,
   gameStartTime: Date.now(),
+  clickCount: 0,
+  totalClicks: 0,
+  boostActive: false,
+  boostEndTime: 0,
+  autoClickerActive: false,
+  researchPoints: 0,
 };
 
 const gameReducer = (state: GameState, action: any): GameState => {
@@ -272,7 +302,8 @@ const gameReducer = (state: GameState, action: any): GameState => {
         ...state,
         money: state.money - upgrade.cost,
         totalSpent: state.totalSpent + upgrade.cost,
-        upgrades: newUpgrades
+        upgrades: newUpgrades,
+        autoClickerActive: upgrade.affects === 'auto' ? true : state.autoClickerActive
       };
     
     case 'PURCHASE_PRODUCTION_LINE':
@@ -319,17 +350,40 @@ const gameReducer = (state: GameState, action: any): GameState => {
         return state;
       }
       
-      const clickProduction = clickLine.baseProduction * clickLine.level * state.marketMultiplier;
+      const clickUpgrade = state.upgrades.find(u => u.affects === 'click' && u.owned > 0);
+      const clickMultiplier = clickUpgrade ? Math.pow(clickUpgrade.multiplier, clickUpgrade.owned) : 1;
+      const prestigeClickBonus = state.prestigeUpgrades.find(u => u.affects === 'click_power' && u.owned > 0);
+      const prestigeClickMultiplier = prestigeClickBonus ? Math.pow(prestigeClickBonus.multiplier, prestigeClickBonus.owned) : 1;
+      
+      const clickProduction = clickLine.baseProduction * clickLine.level * state.marketMultiplier * clickMultiplier * prestigeClickMultiplier;
+      
       return {
         ...state,
         money: state.money + clickProduction,
-        totalEarned: state.totalEarned + clickProduction
+        totalEarned: state.totalEarned + clickProduction,
+        totalClicks: state.totalClicks + 1,
+        clickCount: state.clickCount + 1
+      };
+    
+    case 'ACTIVATE_BOOST':
+      return {
+        ...state,
+        boostActive: true,
+        boostEndTime: Date.now() + 30000 // 30 seconds
+      };
+    
+    case 'DEACTIVATE_BOOST':
+      return {
+        ...state,
+        boostActive: false,
+        boostEndTime: 0
       };
     
     case 'UPDATE_PRODUCTION':
       return {
         ...state,
-        totalEarned: state.totalEarned + action.payload
+        totalEarned: state.totalEarned + action.payload,
+        totalProduced: state.totalProduced + action.payload
       };
     
     case 'UPDATE_MARKET':
@@ -381,10 +435,15 @@ const gameReducer = (state: GameState, action: any): GameState => {
       if (state.totalEarned < 10000000) return state;
       
       const newPrestigeTokens = Math.floor(state.totalEarned / 10000000);
+      const prestigeGainBonus = state.prestigeUpgrades.find(u => u.affects === 'prestige_gain' && u.owned > 0);
+      const adjustedTokens = prestigeGainBonus ? 
+        Math.floor(newPrestigeTokens * (1 + prestigeGainBonus.effect * prestigeGainBonus.owned)) : 
+        newPrestigeTokens;
+      
       return {
         ...initialState,
         prestigeLevel: state.prestigeLevel + 1,
-        prestigeTokens: state.prestigeTokens + newPrestigeTokens,
+        prestigeTokens: state.prestigeTokens + adjustedTokens,
         prestigeUpgrades: state.prestigeUpgrades,
         settings: state.settings,
         lastSave: state.lastSave,
@@ -494,6 +553,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           { id: 4, title: "Supply Chain Issues", description: "Production costs increased by 30% for 90 seconds.", effect: "cost", value: 1.3, duration: 90000, multiplier: 0.7 },
         ];
         
+        // Apply luck bonus from prestige upgrades
+        const luckUpgrade = gameState.prestigeUpgrades.find(u => u.affects === 'luck' && u.owned > 0);
+        if (luckUpgrade && luckUpgrade.owned > 0) {
+          // Higher chance for beneficial events
+          const badEventIndex = events.findIndex(e => e.effect === "cost");
+          if (badEventIndex > -1 && Math.random() < luckUpgrade.effect * luckUpgrade.owned) {
+            events.splice(badEventIndex, 1); // Remove bad event
+          }
+        }
+        
         const randomEvent = events[Math.floor(Math.random() * events.length)];
         dispatch({ type: 'TRIGGER_EVENT', payload: randomEvent });
         
@@ -504,17 +573,32 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, 30000); // Check every 30 seconds
 
     return () => clearInterval(eventInterval);
-  }, [gameState.currentEvent]);
+  }, [gameState.currentEvent, gameState.prestigeUpgrades]);
 
   // Production loop
   useEffect(() => {
     const productionInterval = setInterval(() => {
       let totalIncome = 0;
       
+      // Apply speed boost from upgrades
+      const speedUpgrade = gameState.upgrades.find(u => u.affects === 'speed' && u.owned > 0);
+      const prestigeSpeedBoost = gameState.prestigeUpgrades.find(u => u.affects === 'speed' && u.owned > 0);
+      
+      // Calculate manager efficiency
+      const managerBoost = gameState.prestigeUpgrades.find(u => u.affects === 'managers' && u.owned > 0);
+      const managerEfficiency = managerBoost ? Math.pow(managerBoost.multiplier, managerBoost.owned) : 1;
+      
       gameState.productionLines.forEach(line => {
         if (line.owned > 0 && line.managerHired) {
-          const eventMultiplier = gameState.currentEvent?.multiplier || 1;
-          const income = line.owned * line.baseProduction * line.level * gameState.marketMultiplier * eventMultiplier;
+          const eventMultiplier = gameState.currentEvent?.effect === 'production' ? gameState.currentEvent.multiplier : 1;
+          const boostMultiplier = gameState.boostActive ? 3 : 1;
+          const megaBoost = gameState.prestigeUpgrades.find(u => u.affects === 'mega' && u.owned > 0);
+          const megaMultiplier = megaBoost ? Math.pow(megaBoost.multiplier, megaBoost.owned) : 1;
+          
+          const income = line.owned * line.baseProduction * line.level * 
+                        gameState.marketMultiplier * eventMultiplier * 
+                        boostMultiplier * managerEfficiency * megaMultiplier;
+          
           totalIncome += income;
         }
       });
@@ -526,7 +610,25 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, 1000);
 
     return () => clearInterval(productionInterval);
-  }, [gameState.money, gameState.productionLines, gameState.marketMultiplier, gameState.currentEvent]);
+  }, [gameState.money, gameState.productionLines, gameState.marketMultiplier, gameState.currentEvent, gameState.boostActive, gameState.prestigeUpgrades]);
+
+  // Auto-clicker functionality
+  useEffect(() => {
+    if (gameState.autoClickerActive) {
+      const autoClickInterval = setInterval(() => {
+        // Find the most profitable line to click
+        const profitableLines = gameState.productionLines
+          .filter(line => line.owned > 0)
+          .sort((a, b) => (b.baseProduction * b.level) - (a.baseProduction * a.level));
+        
+        if (profitableLines.length > 0) {
+          dispatch({ type: 'CLICK_PRODUCTION', payload: profitableLines[0].id });
+        }
+      }, 2000); // Click every 2 seconds
+      
+      return () => clearInterval(autoClickInterval);
+    }
+  }, [gameState.autoClickerActive, gameState.productionLines]);
 
   // Achievement tracking
   useEffect(() => {
@@ -550,6 +652,25 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         case 'prestige':
           progress = gameState.prestigeLevel;
           break;
+        case 'clicks':
+          progress = gameState.totalClicks;
+          break;
+        case 'managers':
+          progress = gameState.productionLines.filter(line => line.managerHired).length;
+          break;
+        case 'production_rate':
+          // Calculate current production rate per second
+          const totalRate = gameState.productionLines.reduce((total, line) => {
+            if (line.owned > 0 && line.managerHired) {
+              return total + (line.owned * line.baseProduction * line.level);
+            }
+            return total;
+          }, 0);
+          progress = totalRate;
+          break;
+        case 'total_owned':
+          progress = gameState.productionLines.reduce((total, line) => total + line.owned, 0);
+          break;
       }
 
       if (progress >= achievement.target && !unlocked) {
@@ -560,7 +681,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     dispatch({ type: 'UPDATE_ACHIEVEMENTS', payload: updatedAchievements });
-  }, [gameState.money, gameState.totalEarned, gameState.productionLines, gameState.upgrades, gameState.prestigeLevel]);
+  }, [
+    gameState.money, 
+    gameState.totalEarned, 
+    gameState.productionLines, 
+    gameState.upgrades, 
+    gameState.prestigeLevel,
+    gameState.totalClicks
+  ]);
 
   const purchaseUpgrade = useCallback((upgradeId: string) => {
     dispatch({ type: 'PURCHASE_UPGRADE', payload: upgradeId });
@@ -643,10 +771,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (upgrade.unlockCondition.type === 'prestige') {
           return gameState.prestigeLevel >= upgrade.unlockCondition.value;
         }
+        if (upgrade.unlockCondition.type === 'total_earned') {
+          return gameState.totalEarned >= upgrade.unlockCondition.value;
+        }
       }
       return true;
     });
-  }, [gameState.achievements, gameState.totalSpent, gameState.prestigeLevel, gameState.upgrades]);
+  }, [gameState.achievements, gameState.totalSpent, gameState.prestigeLevel, gameState.upgrades, gameState.totalEarned]);
 
   const getVisibleAchievements = useCallback(() => {
     return gameState.achievements.filter((achievement, index) => {
@@ -678,7 +809,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     exportSave,
     importSave,
     getVisibleUpgrades,
-    getVisibleAchievements
+    getVisibleAchievements,
+    dispatch
   };
 
   return (
