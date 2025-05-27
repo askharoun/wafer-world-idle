@@ -101,7 +101,7 @@ const PrestigePanel = () => {
                 <div className="flex items-center space-x-1">
                   <TrendingUp className="w-4 h-4 text-yellow-400" />
                   <span className="text-sm font-semibold text-yellow-300">
-                    {upgrade.effect.multiplier}x
+                    {upgrade.multiplier}x
                   </span>
                 </div>
               </div>
